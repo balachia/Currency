@@ -4,6 +4,7 @@ import re
 from os.path import expanduser
 from platform import node
 from subprocess import call
+from numpy import log10
 import time
 import os
 import csv
@@ -121,13 +122,35 @@ def process_barley(outfiles="../data/out", gap=7):
 
 def merge_files(indir="../data/out", outfile="../data/out/transactions.h5", mode='w', gap=7):
     user_counts = load_users()
+    total = len(user_counts)
+    width = 1 + int(log10(total))
+
+    prefix = '{i: >%d}/%s' % (width, total)
 
     store = pd.HDFStore(outfile, mode=mode)
+    i = 1
+    numbad = 0
     for (user, ucount) in user_counts.iteritems():
+        # print('{indir}/transactions-{user}-g{gap}.csv'.format(indir=indir, user=user, gap=gap))
         df = pd.read_csv('{indir}/transactions-{user}-g{gap}.csv'.format(indir=indir, user=user, gap=gap))
-        store.append('df',df)
+        print((prefix + ' :: {indir}/transactions-{user}-g{gap}.csv :: {shape}').format(indir=indir, user=user, gap=gap, shape=df.shape, i=i))
+        i += 1
+
+        try:
+            store.append('df',df)
+        except TypeError:
+        #     print(indir)
+        #     print(user)
+        #     print(gap)
+        #     # print('%s\n%s, %s' % (indir, user, gap))
+            # print('\n{indir}/transactions-{user}-g{gap}.csv'.format(indir=indir, user=user, gap=gap))
+            # print(df)
+            print("\tBAD DATAFRAME")
+            numbad += 1
 
     store.close()
+
+    print('# BAD FRAMES: %s' % numbad)
 
 
 
@@ -135,14 +158,14 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--barley',dest='barley',action='store_true')
     parser.add_argument('--localmp',dest='localmp',action='store_true')
-    parser.add_argument('-m','--merge',dest='merge',action='store_true')
-    parser.add_argument('-g','--gap',dest=gap,type=int,default=7)
+    parser.add_argument('--merge',dest='merge',action='store_true')
+    parser.add_argument('-g','--gap',dest='gap',type=int,default=7)
     parser.add_argument('-i','--infiles',dest='infiles',type=str)
     parser.add_argument('-o','--outfiles',dest='outfiles',default="../data/out",type=str)
     cmdargs = parser.parse_args()
 
     if cmdargs.merge:
-        merge_files()
+        merge_files(indir=cmdargs.infiles, outfile=cmdargs.outfiles, gap=cmdargs.gap)
     else:
         if cmdargs.barley:
             process_barley(outfiles=cmdargs.outfiles, gap=cmdargs.gap)
