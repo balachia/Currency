@@ -130,6 +130,8 @@ def merge_files(indir="../data/out", outfile="../data/out/transactions.h5", mode
     store = pd.HDFStore(outfile, mode=mode)
     i = 1
     numbad = 0
+    badlist = []
+
     for (user, ucount) in user_counts.iteritems():
         # print('{indir}/transactions-{user}-g{gap}.csv'.format(indir=indir, user=user, gap=gap))
         df = pd.read_csv('{indir}/transactions-{user}-g{gap}.csv'.format(indir=indir, user=user, gap=gap))
@@ -146,11 +148,13 @@ def merge_files(indir="../data/out", outfile="../data/out/transactions.h5", mode
             # print('\n{indir}/transactions-{user}-g{gap}.csv'.format(indir=indir, user=user, gap=gap))
             # print(df)
             print("\tBAD DATAFRAME")
+            badlist.append('user %s :: %s' % (user, df.shape))
             numbad += 1
 
     store.close()
 
     print('# BAD FRAMES: %s' % numbad)
+    print('\n'.join(badlist))
 
 
 
