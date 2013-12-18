@@ -4,6 +4,7 @@ import re
 from os.path import expanduser
 from platform import node
 from subprocess import call
+import time
 
 if re.match(r'corn..\.stanford\.edu',node()):
     DATAFILE = expanduser('~/2YP/data/forexposition.h5')
@@ -29,11 +30,14 @@ def process_local():
     total = sum([c for (u,c) in user_counts.iteritems()])
 
     finished = 0
+    starttime = time.time()
     for (user, ucount) in user_counts.iteritems():
+        print("User %s" % user),
         call("python make_transaction_stats.py -u {user} -g 7 -o ../data/out/transactions-{user}.csv".format(user=user).split())
 
         finished += ucount
-        print("Finished %s / %s in (%s)" % (finished, total, 0))
+        nowtime = time.time()
+        print(", finished %s / %s (%s / %s)" % (finished, total, (nowtime - starttime), (nowtime-starttime) * (float(total) / finished) ))
 
 
 def process_barley():
