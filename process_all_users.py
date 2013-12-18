@@ -34,9 +34,9 @@ python make_transaction_stats.py -u {user} -g 7 -o {outdir}/transactions-{user}.
 
 barley_stub = '''#!/bin/bash
 
-#$ -N batch{batch:0>%d}
-#$ -o {outdir}/std/batch{batch:0>%d}.o
-#$ -e {outdir}/std/batch{batch:0>%d}.e
+#$ -N batch{batch:0>%(wid)d}
+#$ -o {outdir}/std/batch{batch:0>%(wid)d}.o
+#$ -e {outdir}/std/batch{batch:0>%(wid)d}.e
 #$ -cwd
 #$ -S /bin/bash
 ##$ -l testq=1
@@ -44,7 +44,7 @@ barley_stub = '''#!/bin/bash
 source ~/.bash_profile
 workon currensee
 date
-''' % (1 + int(log10(BARLEY_MAX_JOBS)))
+''' % {'wid' : 1 + int(log10(BARLEY_MAX_JOBS))}
 
 barley_addend = '''
 echo user {user} :: {count}
