@@ -37,7 +37,7 @@ def process_local():
 
         finished += ucount
         nowtime = time.time()
-        print(", finished %s / %s (%s / %s)" % (finished, total, (nowtime - starttime), (nowtime-starttime) * (float(total) / finished) ))
+        print(", finished %s / %s (%9.2fs / %9.2fs)" % (finished, total, (nowtime - starttime), (nowtime-starttime) * (float(total) / finished) ))
 
 
 def process_barley():
