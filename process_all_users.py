@@ -17,7 +17,8 @@ else:
     FRIENDFILE = expanduser('~/Dropbox/Currensee/Data Exploration/hdf/linkdata.h5')
 
 
-BARLEY_MAX_JOBS = 480
+# BARLEY_MAX_JOBS = 480
+BARLEY_MAX_JOBS = 40
 
 barley_template = '''#!/bin/bash
 
@@ -33,16 +34,16 @@ python make_transaction_stats.py -u {user} -g 7 -o {outdir}/transactions-{user}.
 
 barley_stub = '''#!/bin/bash
 
-#$ -N batch{batch}
-#$ -o {outdir}/std/batch{batch}.o
-#$ -e {outdir}/std/batch{batch}.e
+#$ -N batch{batch:0>%d}
+#$ -o {outdir}/std/batch{batch:0>%d}.o
+#$ -e {outdir}/std/batch{batch:0>%d}.e
 #$ -cwd
 #$ -S /bin/bash
 ##$ -l testq=1
 
 source ~/.bash_profile
 workon currensee
-'''
+''' % (1 + int(log10(BARLEY_MAX_JOBS)))
 
 barley_addend = '''
 echo user {user} :: {count}
