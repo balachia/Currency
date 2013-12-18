@@ -37,6 +37,9 @@ barley_stub = '''#!/bin/bash
 #$ -cwd
 #$ -S /bin/bash
 ##$ -l testq=1
+
+source ~/.bash_profile
+workon currensee
 '''
 
 barley_addend = '''
