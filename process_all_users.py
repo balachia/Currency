@@ -5,6 +5,7 @@ from os.path import expanduser
 from platform import node
 from subprocess import call
 import time
+import os
 
 if re.match(r'corn..\.stanford\.edu',node()):
     DATAFILE = expanduser('~/2YP/data/forexposition.h5')
@@ -14,8 +15,16 @@ else:
     FRIENDFILE = expanduser('~/Dropbox/Currensee/Data Exploration/hdf/linkdata.h5')
 
 
-barley_template = '''
+barley_template = '''#!/bin/bash
 
+#$ -N user{user}
+#$ -o {outdir}/std/user{user}.out
+#$ -e {outdir}/std/user{user}.error
+#$ -cwd
+#$ -S /bin/bash
+##$ -l testq=1
+
+python make_transaction_stats.py -u {user} -g 7 -o {outdir}/transactions-{user}.csv
 '''
 
 
@@ -38,15 +47,28 @@ def process_local(outfiles="../data/out"):
     starttime = time.time()
     for (user, ucount) in user_counts.iteritems():
         print("User %s" % user),
-        call("python make_transaction_stats.py -u {user} -g 7 -o {outdir}/transactions-{user}.csv".format(user=user, outdir=outfiles).split())
+        call("python make_transaction_stats.py -u {user} -g 7 -o {outdir}/transactions-{user}-g7.csv".format(user=user, outdir=outfiles).split())
 
         finished += ucount
         nowtime = time.time()
-        print(", finished %s / %s (%0.2f%% :: %0.2fs / %0.2fs)" % (finished, total, (float(finished)/total), (nowtime - starttime), (nowtime-starttime) * (float(total) / finished) ))
+        print(", finished %s / %s (%0.2f%% :: %0.2fs / %0.2fs)" % (finished, total, (100.0 * finished/total), (nowtime - starttime), (nowtime-starttime) * (float(total) / finished) ))
 
 
 def process_barley(outfiles="../data/out"):
     user_counts = load_users()
+
+    runcount = 0
+    for (user, ucount) in user_counts.iteritems():
+        qsubfile = open('submit.script',mode='w')
+        qsubfile.write(barley_template.format(user=user, outdir=outfiles))
+        qsubfile.close()
+
+        call("qsub submit.script".split())
+
+        runcount += 1
+        if runcount > 3:
+            break
+
 
 
 def merge_files():
