@@ -18,7 +18,7 @@ else:
 
 
 # BARLEY_MAX_JOBS = 480
-BARLEY_MAX_JOBS = 40
+BARLEY_MAX_JOBS = 80
 
 barley_template = '''#!/bin/bash
 
@@ -34,9 +34,9 @@ python make_transaction_stats.py -u {user} -g 7 -o {outdir}/transactions-{user}.
 
 barley_stub = '''#!/bin/bash
 
-#$ -N batch{batch:0>%(wid)d}
-#$ -o {outdir}/std/batch{batch:0>%(wid)d}.o
-#$ -e {outdir}/std/batch{batch:0>%(wid)d}.e
+#$ -N bat{batch:0>%(wid)d}-g{gap}
+#$ -o {outdir}/std/bat{batch:0>%(wid)d}-g{gap}.o
+#$ -e {outdir}/std/bat{batch:0>%(wid)d}-g{gap}.e
 #$ -cwd
 #$ -S /bin/bash
 ##$ -l testq=1
@@ -96,7 +96,7 @@ def process_barley(outfiles="../data/out", gap=7):
 
         if submitted_count > (float(total) / BARLEY_MAX_JOBS):
             qsubfile = open('submit.script',mode='w')
-            qsubfile.write(current_script.format(batch=batch, outdir=outfiles))
+            qsubfile.write(current_script.format(batch=batch, outdir=outfiles, gap=gap))
             qsubfile.write("date\n")
             qsubfile.close()
 
@@ -112,7 +112,7 @@ def process_barley(outfiles="../data/out", gap=7):
             # break
     else:
         qsubfile = open('submit.script',mode='w')
-        qsubfile.write(current_script.format(batch=batch, outdir=outfiles))
+        qsubfile.write(current_script.format(batch=batch, outdir=outfiles, gap=gap))
         qsubfile.write("date\n")
         qsubfile.close()
 
