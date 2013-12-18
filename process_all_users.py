@@ -6,6 +6,7 @@ from platform import node
 from subprocess import call
 import time
 import os
+import csv
 
 if re.match(r'corn..\.stanford\.edu',node()) or re.match(r'barley[^.]+\.stanford\.edu',node()):
     DATAFILE = expanduser('~/2YP/data/forexposition.h5')
@@ -44,7 +45,7 @@ workon currensee
 
 barley_addend = '''
 echo user {user} :: {count}
-python make_transaction_stats.py -u {user} -g 7 -o {outdir}/transactions-{user}.csv
+python make_transaction_stats.py -u {user} -g {gap} -o {outdir}/transactions-{user}-g{gap}.csv
 '''
 
 
@@ -58,7 +59,7 @@ def load_users():
     return user_counts
 
 
-def process_local(outfiles="../data/out"):
+def process_local(outfiles="../data/out", gap=7):
     user_counts = load_users()
 
     total = sum([c for (u,c) in user_counts.iteritems()])
@@ -67,14 +68,14 @@ def process_local(outfiles="../data/out"):
     starttime = time.time()
     for (user, ucount) in user_counts.iteritems():
         print("User %s" % user),
-        call("python make_transaction_stats.py -u {user} -g 7 -o {outdir}/transactions-{user}-g7.csv".format(user=user, outdir=outfiles).split())
+        call("python make_transaction_stats.py -u {user} -g {gap} -o {outdir}/transactions-{user}-g{gap}.csv".format(user=user, outdir=outfiles).split(), gap=gap)
 
         finished += ucount
         nowtime = time.time()
         print(", finished %s / %s (%0.2f%% :: %0.2fs / %0.2fs)" % (finished, total, (100.0 * finished/total), (nowtime - starttime), (nowtime-starttime) * (float(total) / finished) ))
 
 
-def process_barley(outfiles="../data/out"):
+def process_barley(outfiles="../data/out", gap=7):
     user_counts = load_users()
 
     total = sum([c for (u,c) in user_counts.iteritems()])
@@ -84,7 +85,7 @@ def process_barley(outfiles="../data/out"):
     current_script = barley_stub
     submitted_count = 0
     for (user, ucount) in user_counts.iteritems():
-        current_script += barley_addend.format(user=user, count=ucount, outdir=outfiles)
+        current_script += barley_addend.format(user=user, count=ucount, outdir=outfiles, gap=gap)
         submitted_count += ucount
 
         # print('-'*80)
@@ -118,16 +119,24 @@ def process_barley(outfiles="../data/out"):
 
 
 
-def merge_files():
+def merge_files(indir="../data/out", outfile="../data/out/transactions.h5", mode='w', gap=7):
     user_counts = load_users()
 
+    store = pd.HDFStore(outfile, mode=mode)
+    for (user, ucount) in user_counts.iteritems():
+        df = pd.read_csv('{indir}/transactions-{user}-g{gap}.csv'.format(indir=indir, user=user, gap=gap))
+        store.append('df',df)
+
+    store.close()
 
 
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-b','--barley',dest='barley',action='store_true')
+    parser.add_argument('--barley',dest='barley',action='store_true')
+    parser.add_argument('--localmp',dest='localmp',action='store_true')
     parser.add_argument('-m','--merge',dest='merge',action='store_true')
+    parser.add_argument('-g','--gap',dest=gap,type=int,default=7)
     parser.add_argument('-i','--infiles',dest='infiles',type=str)
     parser.add_argument('-o','--outfiles',dest='outfiles',default="../data/out",type=str)
     cmdargs = parser.parse_args()
@@ -136,6 +145,8 @@ if __name__=='__main__':
         merge_files()
     else:
         if cmdargs.barley:
-            process_barley(cmdargs.outfiles)
+            process_barley(outfiles=cmdargs.outfiles, gap=cmdargs.gap)
+        elif cmdargs.localmp:
+            pass
         else:
-            process_local(cmdargs.outfiles)
+            process_local(outfiles=cmdargs.outfiles, gap=cmdargs.gap)
