@@ -82,13 +82,13 @@ if __name__=='__main__':
     parser.add_argument('-b','--barley',dest='barley',action='store_true')
     parser.add_argument('-m','--merge',dest='merge',action='store_true')
     parser.add_argument('-i','--infiles',dest='infiles',type=str)
-    parser.add_argument('-o','--outfiles',dest='outfiles',type=str)
+    parser.add_argument('-o','--outfiles',dest='outfiles',default="../data/out",type=str)
     cmdargs = parser.parse_args()
 
     if cmdargs.merge:
         merge_files()
     else:
         if cmdargs.barley:
-            process_barley()
+            process_barley(cmdargs.outfiles)
         else:
-            process_local()
+            process_local(cmdargs.outfiles)
