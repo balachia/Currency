@@ -84,8 +84,8 @@ def process_barley(outfiles="../data/out"):
         current_script += barley_addend.format(user=user, count=ucount, outdir=outfiles)
         submitted_count += ucount
 
-        print('-'*80)
-        print(current_script)
+        # print('-'*80)
+        # print(current_script)
 
         if submitted_count > (float(total) / BARLEY_MAX_JOBS):
             qsubfile = open('submit.script',mode='w')
