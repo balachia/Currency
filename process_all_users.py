@@ -57,7 +57,7 @@ def process_local(outfiles="../data/out"):
 def process_barley(outfiles="../data/out"):
     user_counts = load_users()
 
-    runcount = 0
+    runcount = 1
     for (user, ucount) in user_counts.iteritems():
         qsubfile = open('submit.script',mode='w')
         qsubfile.write(barley_template.format(user=user, outdir=outfiles))
@@ -66,7 +66,7 @@ def process_barley(outfiles="../data/out"):
         call("qsub submit.script".split())
 
         runcount += 1
-        if runcount > 3:
+        if runcount > 2:
             break
 
 

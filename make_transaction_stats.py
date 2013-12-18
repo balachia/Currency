@@ -8,7 +8,7 @@ import numpy as np
 from platform import node
 from os.path import expanduser
 
-if re.match(r'corn..\.stanford\.edu',node()):
+if re.match(r'corn..\.stanford\.edu',node()) or re.match(r'barley[^.]+\.stanford\.edu',node()):
     DATAFILE = expanduser('~/2YP/data/forexposition.h5')
     FRIENDFILE = expanduser('~/2YP/data/linkdata.h5')
 else:
