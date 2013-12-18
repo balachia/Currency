@@ -15,6 +15,8 @@ else:
     FRIENDFILE = expanduser('~/Dropbox/Currensee/Data Exploration/hdf/linkdata.h5')
 
 
+BARLEY_MAX_JOBS = 480
+
 barley_template = '''#!/bin/bash
 
 #$ -N user{user}
@@ -24,6 +26,21 @@ barley_template = '''#!/bin/bash
 #$ -S /bin/bash
 ##$ -l testq=1
 
+python make_transaction_stats.py -u {user} -g 7 -o {outdir}/transactions-{user}.csv
+'''
+
+barley_stub = '''#!/bin/bash
+
+#$ -N batch{batch}
+#$ -o {outdir}/std/batch{batch}.o
+#$ -e {outdir}/std/batch{batch}.e
+#$ -cwd
+#$ -S /bin/bash
+##$ -l testq=1
+'''
+
+barley_addend = '''
+echo user {user} :: {count}
 python make_transaction_stats.py -u {user} -g 7 -o {outdir}/transactions-{user}.csv
 '''
 
@@ -57,18 +74,41 @@ def process_local(outfiles="../data/out"):
 def process_barley(outfiles="../data/out"):
     user_counts = load_users()
 
-    runcount = 1
-    for (user, ucount) in user_counts.iteritems():
-        qsubfile = open('submit.script',mode='w')
-        qsubfile.write(barley_template.format(user=user, outdir=outfiles))
-        qsubfile.close()
+    total = sum([c for (u,c) in user_counts.iteritems()])
 
-        call("qsub submit.script".split())
+    runcount = 1
+    batch = 1
+    current_script = barley_stub
+    submitted_count = 0
+    for (user, ucount) in user_counts.iteritems():
+        current_script += barley_addend.format(user=user, count=ucount, outdir=outfiles)
+        submitted_count += ucount
+
+        if submitted_count > (float(total) / BARLEY_MAX_JOBS):
+            qsubfile = open('submit.script',mode='w')
+            qsubfile.write(barley_template.format(batch=batch, outdir=outfiles))
+            qsubfile.close()
+
+            call("qsub submit.script".split())
+
+            current_script = barley_stub
+            submitted_count = 0
+            batch += 1
 
         runcount += 1
         if runcount > 2:
             pass
             # break
+    else:
+        qsubfile = open('submit.script',mode='w')
+        qsubfile.write(barley_template.format(batch=batch, outdir=outfiles))
+        qsubfile.close()
+
+        call("qsub submit.script".split())
+
+        current_script = barley_stub
+        submitted_count = 0
+        batch += 1
 
 
 
