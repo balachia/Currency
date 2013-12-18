@@ -14,6 +14,11 @@ else:
     FRIENDFILE = expanduser('~/Dropbox/Currensee/Data Exploration/hdf/linkdata.h5')
 
 
+barley_template = '''
+
+'''
+
+
 def load_users():
     storedf = pd.HDFStore(DATAFILE)
     df = storedf['df']
@@ -24,7 +29,7 @@ def load_users():
     return user_counts
 
 
-def process_local():
+def process_local(outfiles="../data/out"):
     user_counts = load_users()
 
     total = sum([c for (u,c) in user_counts.iteritems()])
@@ -33,14 +38,14 @@ def process_local():
     starttime = time.time()
     for (user, ucount) in user_counts.iteritems():
         print("User %s" % user),
-        call("python make_transaction_stats.py -u {user} -g 7 -o ../data/out/transactions-{user}.csv".format(user=user).split())
+        call("python make_transaction_stats.py -u {user} -g 7 -o {outdir}/transactions-{user}.csv".format(user=user, outdir=outfiles).split())
 
         finished += ucount
         nowtime = time.time()
-        print(", finished %s / %s (%9.2fs / %9.2fs)" % (finished, total, (nowtime - starttime), (nowtime-starttime) * (float(total) / finished) ))
+        print(", finished %s / %s (%0.2f%% :: %0.2fs / %0.2fs)" % (finished, total, (float(finished)/total), (nowtime - starttime), (nowtime-starttime) * (float(total) / finished) ))
 
 
-def process_barley():
+def process_barley(outfiles="../data/out"):
     user_counts = load_users()
 
 
