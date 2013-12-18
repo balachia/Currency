@@ -10,7 +10,7 @@ from os.path import expanduser
 
 if re.match(r'corn..\.stanford\.edu',node()):
     DATAFILE = expanduser('~/2YP/data/forexposition.h5')
-    FRIENDFILE = expanduser('~/2YP/data/linkdata.csv')
+    FRIENDFILE = expanduser('~/2YP/data/linkdata.h5')
 else:
     DATAFILE = expanduser('~/Dropbox/Currensee/Data Exploration/hdf/forexposition.h5')
     FRIENDFILE = expanduser('~/Dropbox/Currensee/Data Exploration/hdf/linkdata.h5')
