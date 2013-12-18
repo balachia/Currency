@@ -67,7 +67,8 @@ def process_barley(outfiles="../data/out"):
 
         runcount += 1
         if runcount > 2:
-            break
+            pass
+            # break
 
 
 
