@@ -89,7 +89,7 @@ def process_barley(outfiles="../data/out"):
 
         if submitted_count > (float(total) / BARLEY_MAX_JOBS):
             qsubfile = open('submit.script',mode='w')
-            qsubfile.write(barley_template.format(batch=batch, outdir=outfiles))
+            qsubfile.write(current_script.format(batch=batch, outdir=outfiles))
             qsubfile.close()
 
             call("qsub submit.script".split())
@@ -104,7 +104,7 @@ def process_barley(outfiles="../data/out"):
             # break
     else:
         qsubfile = open('submit.script',mode='w')
-        qsubfile.write(barley_template.format(batch=batch, outdir=outfiles))
+        qsubfile.write(current_script.format(batch=batch, outdir=outfiles))
         qsubfile.close()
 
         call("qsub submit.script".split())
