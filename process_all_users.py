@@ -43,6 +43,7 @@ barley_stub = '''#!/bin/bash
 
 source ~/.bash_profile
 workon currensee
+date
 ''' % (1 + int(log10(BARLEY_MAX_JOBS)))
 
 barley_addend = '''
@@ -96,6 +97,7 @@ def process_barley(outfiles="../data/out", gap=7):
         if submitted_count > (float(total) / BARLEY_MAX_JOBS):
             qsubfile = open('submit.script',mode='w')
             qsubfile.write(current_script.format(batch=batch, outdir=outfiles))
+            qsubfile.write("date\n")
             qsubfile.close()
 
             call("qsub submit.script".split())
@@ -111,6 +113,7 @@ def process_barley(outfiles="../data/out", gap=7):
     else:
         qsubfile = open('submit.script',mode='w')
         qsubfile.write(current_script.format(batch=batch, outdir=outfiles))
+        qsubfile.write("date\n")
         qsubfile.close()
 
         call("qsub submit.script".split())
