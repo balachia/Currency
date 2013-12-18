@@ -7,6 +7,7 @@ from subprocess import call
 import time
 import os
 
+print(node())
 if re.match(r'corn..\.stanford\.edu',node()):
     DATAFILE = expanduser('~/2YP/data/forexposition.h5')
     FRIENDFILE = expanduser('~/2YP/data/linkdata.h5')
@@ -78,6 +79,10 @@ def merge_files():
 
 
 if __name__=='__main__':
+    print('-'*40)
+    print("node name::%s" % node())
+    print('-'*40)
+    
     parser = argparse.ArgumentParser()
     parser.add_argument('-b','--barley',dest='barley',action='store_true')
     parser.add_argument('-m','--merge',dest='merge',action='store_true')
