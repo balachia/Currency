@@ -17,7 +17,7 @@ else:
 
 global icount
 icount = 1
-def entry_dispatcher(item, self_df, friend_df, gap):
+def entry_dispatcher(item, self_df, friend_df, linkdata, gap):
     '''
     utility function for apply loop of process_transaction
     takes a transaction row from the main transaction dataframe 
@@ -31,6 +31,12 @@ def entry_dispatcher(item, self_df, friend_df, gap):
 
     trg = item['opendate']
     transid = item['id']
+
+    # update friend transaction to include only current friends
+    friendset = set(linkdata.index[linkdata <= trg])
+    friend_df = friend_df[friend_df.user_id.map(lambda x: x in friendset)]
+
+    # get transaction statistics for self and friends
     self_agg = process_transaction(self_df, trg-gap, trg)
     frnd_agg = process_transaction(friend_df, trg-gap, trg)
 
@@ -89,6 +95,11 @@ def process_transactions(user_id, gap_days=7):
     ld = pd.concat([ld,ld2])
 
     # get user friends
+    ld = ld[ld.senderid == user_id]
+
+    # filter out duplicate friendships, keeping earliest
+    ld = ld.groupby('recipientid').apply(lambda x:x.sort('senddate',ascending=True).senddate.iloc[0])
+
     friendset = set(ld[ld.senderid == user_id].recipientid)
 
     # preprocess transactions
@@ -105,7 +116,7 @@ def process_transactions(user_id, gap_days=7):
     # process all user transactions
     # apply is bullshit: can't properly reduce the data frames i'm producing
     # res = own_trans.apply(lambda x: entry_dispatcher(x, own_trans, frn_trans, gap), axis=1)
-    res_dfs = [entry_dispatcher(x, own_trans, frn_trans, gap) for (idx,x) in own_trans.iterrows()]
+    res_dfs = [entry_dispatcher(x, own_trans, frn_trans, ld, gap) for (idx,x) in own_trans.iterrows()]
     final_df = pd.concat(res_dfs)
 
     return final_df
