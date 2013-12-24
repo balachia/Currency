@@ -71,7 +71,7 @@ def process_local(outfiles="../data/out", gap=7):
     starttime = time.time()
     for (user, ucount) in user_counts.iteritems():
         print("User %s" % user),
-        call("python make_transaction_stats.py -u {user} -g {gap} -o {outdir}/transactions-{user}-g{gap}.csv".format(user=user, outdir=outfiles).split(), gap=gap)
+        call("python make_transaction_stats.py -u {user} -g {gap} -o {outdir}/transactions-{user}-g{gap}.csv".format(user=user, outdir=outfiles, gap=gap).split())
 
         finished += ucount
         nowtime = time.time()

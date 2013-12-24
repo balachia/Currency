@@ -7,6 +7,8 @@ import re
 import numpy as np
 from platform import node
 from os.path import expanduser
+from collections import defaultdict
+import time
 
 if re.match(r'corn..\.stanford\.edu',node()) or re.match(r'barley[^.]+\.stanford\.edu',node()):
     DATAFILE = expanduser('~/2YP/data/forexposition.h5')
@@ -33,8 +35,8 @@ def entry_dispatcher(item, self_df, friend_df, linkdata, gap):
     transid = item['id']
 
     # update friend transaction to include only current friends
-    friendset = set(linkdata.index[linkdata <= trg])
-    friend_df = friend_df[friend_df.user_id.map(lambda x: x in friendset)]
+    # friendset = set(linkdata.index[linkdata <= trg])
+    # friend_df = friend_df[friend_df.user_id.map(lambda x: x in friendset)]
 
     # get transaction statistics for self and friends
     self_agg = process_transaction(self_df, trg-gap, trg)
@@ -100,7 +102,12 @@ def process_transactions(user_id, gap_days=7):
     # filter out duplicate friendships, keeping earliest
     ld = ld.groupby('recipientid').apply(lambda x:x.sort('senddate',ascending=True).senddate.iloc[0])
 
-    friendset = set(ld[ld.senderid == user_id].recipientid)
+    # friendset = set(ld[ld.senderid == user_id].recipientid)
+    # friendset = set(ld.index)
+    friendset = set()
+    friendlist = zip(ld.index,ld)
+    friendlist.sort(key=lambda (a,b):b, reverse=True)
+    # print(friendset)
 
     # preprocess transactions
     # df = df.set_index('closedate')
@@ -109,17 +116,74 @@ def process_transactions(user_id, gap_days=7):
     df['sw_pctreturn'] = df.pctreturn * df.size
     df['point_profit'] = df.clopdiff * df.longtr * df.size
 
-    # get ego and alter transactions
+    # get ego transactions
     own_trans = df[df.user_id == user_id]
-    frn_trans = df[df.user_id.map(lambda x: x in friendset)]
+
+    # set up friendship subtable and get initial alter transactions
+    # frn_trans = df[df.user_id.map(lambda x: x in friendset)]
+    friendset = set(ld.index)
+    frn_df = df[df.user_id.map(lambda x: x in friendset)]
+    # frn_df = frn_df.set_index('user_id')
+
+    # or roll your own index cause numpy is buggy
+    # print("Index?")
+    st = time.time()
+    frn_df_index = make_index(frn_df,"user_id")
+    et = time.time()
+    print("Index! %s, %0.2fs" % (len(frn_df_index), et-st))
+
+    friendset = []
+    # frn_trans = frn_df.ix[friendset]
+    idxs = my_loc(frn_df_index, friendset)
+    frn_trans = frn_df.iloc[idxs] if idxs else frn_df.ix[[]]
 
     # process all user transactions
     # apply is bullshit: can't properly reduce the data frames i'm producing
     # res = own_trans.apply(lambda x: entry_dispatcher(x, own_trans, frn_trans, gap), axis=1)
-    res_dfs = [entry_dispatcher(x, own_trans, frn_trans, ld, gap) for (idx,x) in own_trans.iterrows()]
+    own_trans = own_trans.sort('opendate',ascending=True)
+    # friendset = set()
+    res_dfs = []
+    (nextf, nextfdate) = friendlist.pop() if friendlist else (None, None)
+    for (idx,x) in own_trans.iterrows():
+        # print(x)
+        added = False
+        while nextfdate and x['opendate'] > nextfdate:
+            # print("BORK %s :: %s - %s" % (nextf, nextfdate, int(x['opendate'])))
+            friendset.append(nextf)
+            (nextf, nextfdate) = friendlist.pop() if friendlist else (None, None)
+            added = True
+
+        if added:
+            # print("BARKBARK!")
+            # print(friendset)
+            # frn_trans = frn_df.ix[friendset]
+            idxs = my_loc(frn_df_index, friendset)
+            frn_trans = frn_df.iloc[idxs] if idxs else frn_df.ix[[]]
+            # print(frn_trans)
+
+        res_dfs.append(entry_dispatcher(x, own_trans, frn_trans, ld, gap))
+
+
+
+    # res_dfs = [entry_dispatcher(x, own_trans, frn_trans, ld, gap) for (idx,x) in own_trans.iterrows()]
     final_df = pd.concat(res_dfs)
 
     return final_df
+
+
+def make_index(df, col):
+    index = defaultdict(list)
+    for i in range(len(df)):
+        index[df.iloc[i][col]].append(i)
+    
+    return index
+
+def my_loc(index, labels):
+    idxs = []
+    for label in labels:
+        idxs.extend(index[label])
+
+    return idxs
 
 
 
