@@ -86,7 +86,7 @@ def mp_gofer(user, outfiles, gap):
     return res
 
 
-def process_localmp(outfiles="../data/out", gap=7):
+def process_localmp(outfiles="../data/out", gap=7, processes=None):
     user_counts = load_users()
 
     global mp_donecount
@@ -96,8 +96,10 @@ def process_localmp(outfiles="../data/out", gap=7):
     mp_total = sum([c for (u,c) in user_counts.iteritems()])
     mp_starttime = time.time()
 
-    pool = mp.Pool()
-    print("Starting pool, size %s" % mp.cpu_count())
+    if not processes:
+        processes = mp.cpu_count()
+    pool = mp.Pool(processes)
+    print("Starting pool, size %s" % processes)
     try:
         for (user, ucount) in user_counts.iteritems():
             # print("Adding %s to pool (%s)" % (user, ucount))
@@ -220,6 +222,7 @@ if __name__=='__main__':
     parser.add_argument('-g','--gap',dest='gap',type=int,default=7)
     parser.add_argument('-i','--infiles',dest='infiles',type=str)
     parser.add_argument('-o','--outfiles',dest='outfiles',default="../data/out",type=str)
+    parser.add_argument('-p','--processes',dest='processes',type=int)
     cmdargs = parser.parse_args()
 
     if cmdargs.merge:
@@ -228,6 +231,6 @@ if __name__=='__main__':
         if cmdargs.barley:
             process_barley(outfiles=cmdargs.outfiles, gap=cmdargs.gap)
         elif cmdargs.localmp:
-            process_localmp(outfiles=cmdargs.outfiles, gap=cmdargs.gap)
+            process_localmp(outfiles=cmdargs.outfiles, gap=cmdargs.gap, processes=cmdargs.processes)
         else:
             process_local(outfiles=cmdargs.outfiles, gap=cmdargs.gap)
