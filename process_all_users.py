@@ -1,10 +1,12 @@
 import pandas as pd
 import argparse
 import re
+import multiprocessing as mp
 from os.path import expanduser
 from platform import node
-from subprocess import call
+from subprocess import call, check_output
 from numpy import log10
+from functools import partial
 import time
 import os
 import csv
@@ -60,6 +62,54 @@ def load_users():
     user_counts = df[['user_id']].groupby('user_id').aggregate('count').to_dict()['user_id']
 
     return user_counts
+
+
+global mp_donecount
+global mp_total
+global mp_starttime
+def mp_callback(result,count):
+    global mp_donecount
+    global mp_total
+    global mp_starttime
+
+    # print(result)
+
+    mp_donecount += count
+    nowtime = time.time()
+    print("%s / %s (%0.2f%% :: %0.2fs / %0.2fs)" % (mp_donecount, mp_total, (100.0 * mp_donecount/mp_total), (nowtime - mp_starttime), (nowtime-mp_starttime) * (float(mp_total) / mp_donecount) ))
+
+
+def mp_gofer(user, outfiles, gap):
+    res = check_output("python make_transaction_stats.py -u {user} -g {gap} -o {outdir}/transactions-{user}-g{gap}.csv".format(
+        user=user, outdir=outfiles, gap=gap).split())
+
+    return res
+
+
+def process_localmp(outfiles="../data/out", gap=7):
+    user_counts = load_users()
+
+    global mp_donecount
+    global mp_total
+    global mp_starttime
+    mp_donecount = 0
+    mp_total = sum([c for (u,c) in user_counts.iteritems()])
+    mp_starttime = time.time()
+
+    pool = mp.Pool()
+    print("Starting pool, size %s" % mp.cpu_count())
+    try:
+        for (user, ucount) in user_counts.iteritems():
+            # print("Adding %s to pool (%s)" % (user, ucount))
+            pool.apply_async(mp_gofer, (user, outfiles, gap), callback=partial(mp_callback,count=ucount))
+        
+        pool.close()
+        pool.join()
+    except:
+        print("BORK")
+        # pool.terminate()
+        # pool.join()
+        raise
 
 
 def process_local(outfiles="../data/out", gap=7):
@@ -178,6 +228,6 @@ if __name__=='__main__':
         if cmdargs.barley:
             process_barley(outfiles=cmdargs.outfiles, gap=cmdargs.gap)
         elif cmdargs.localmp:
-            pass
+            process_localmp(outfiles=cmdargs.outfiles, gap=cmdargs.gap)
         else:
             process_local(outfiles=cmdargs.outfiles, gap=cmdargs.gap)
