@@ -11,9 +11,7 @@ import time
 import os
 import csv
 
-if re.match(r'corn..\.stanford\.edu',node())
-    or re.match(r'barley[^.]+\.stanford\.edu',node())
-    or re.match(r'yen[^.]+\.stanford\.edu',node()):
+if re.match(r'corn..\.stanford\.edu',node()) or re.match(r'barley[^.]+\.stanford\.edu',node()) or re.match(r'yen[^.]+\.stanford\.edu',node()):
     DATAFILE = expanduser('~/2YP/data/forexposition.h5')
     FRIENDFILE = expanduser('~/2YP/data/linkdata.h5')
 else:
