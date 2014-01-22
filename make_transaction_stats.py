@@ -61,8 +61,8 @@ def process_transaction(df, wmin, wmax):
     # trans = df[(df.closedate <= wmax) & (df.closedate > wmin)]
     # return trans
     res = trans.apply(lambda x: pd.Series(dict(
-            size_mean = np.mean(x.size),
-            size_sum = np.sum(x.size),
+            size_mean = np.mean(x.volume),
+            size_sum = np.sum(x.volume),
             ret_mean = np.mean(x.pctreturn),
             ret_count = len(x.pctreturn),
             ret_npos = np.sum(x.pctreturn > 0),
@@ -71,7 +71,11 @@ def process_transaction(df, wmin, wmax):
             ptprof_mean = np.mean(x.point_profit),
             ptprof_sum = np.sum(x.point_profit),
             ptprof_pos = np.sum(x.point_profit[x.point_profit > 0]),
-            ptprof_neg = np.sum(x.point_profit[x.point_profit < 0])
+            ptprof_neg = np.sum(x.point_profit[x.point_profit < 0]),
+            dpnl_mean = np.mean(xdollarpnlt),
+            dpnl_sum = np.sum(x.dollarpnl),
+            dpnl_pos = np.sum(x.dollarpnl[x.dollarpnl > 0]),
+            dpnl_neg = np.sum(x.dollarpnl[x.dollarpnl < 0])
         )))
     # print('-' * 80)
     # print(res)
@@ -113,8 +117,8 @@ def process_transactions(user_id, gap_days=7):
     # df = df.set_index('closedate')
     # apparently the index slows things down! go figure! 10ms -> 7.5 ms, nuts
     df['cp'] = df.currency1 + df.currency2
-    df['sw_pctreturn'] = df.pctreturn * df.size
-    df['point_profit'] = df.clopdiff * df.longtr * df.size
+    df['sw_pctreturn'] = df.pctreturn * df.volume
+    df['point_profit'] = df.clopdiff * df.longtr * df.volume
 
     # get ego transactions
     own_trans = df[df.user_id == user_id]
