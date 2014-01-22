@@ -72,7 +72,7 @@ def process_transaction(df, wmin, wmax):
             ptprof_sum = np.sum(x.point_profit),
             ptprof_pos = np.sum(x.point_profit[x.point_profit > 0]),
             ptprof_neg = np.sum(x.point_profit[x.point_profit < 0]),
-            dpnl_mean = np.mean(xdollarpnlt),
+            dpnl_mean = np.mean(x.dollarpnl),
             dpnl_sum = np.sum(x.dollarpnl),
             dpnl_pos = np.sum(x.dollarpnl[x.dollarpnl > 0]),
             dpnl_neg = np.sum(x.dollarpnl[x.dollarpnl < 0])
