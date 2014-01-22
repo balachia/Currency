@@ -94,8 +94,9 @@ def process_transactions(user_id, gap_days=7):
     gap = gap_days * 86400 * 1000
 
     # undirected network
-    ld = ld[ld.pending == "ACCEPTED"]
-    ld = ld.filter(["recipientid","senderid","senddate"])
+    # ld = ld[ld.pending == "ACCEPTED"]
+    # ld = ld.filter(["recipientid","senderid","senddate"])
+    ld = ld[['recipientid','senderid','senddate']]
     ld2 = ld.copy()
     ld2.columns = ["senderid","recipientid","senddate"]
     ld = pd.concat([ld,ld2])
