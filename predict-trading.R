@@ -1,4 +1,5 @@
 library(plyr)
+library(parallel)
 library(data.table)
 
 rm(list=ls())
@@ -65,7 +66,8 @@ users[is.na(minday) | is.na(maxday),
 
 # start the reactor
 gaps <- 5:1
-resdts <- lapply(users$user_id, function(uid) {
+resdts <- mclapply(users$user_id, mc.preschedule=FALSE,
+    FUN=function(uid) {
         print(uid)
         u.minday <- users[user_id==uid,minday]
         u.maxday <- users[user_id==uid,maxday]
