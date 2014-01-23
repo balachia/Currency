@@ -42,6 +42,8 @@ set.seed(1)
 users[,selector := runif(.N)]
 users <- users[selector < 0.1]
 
+cat('dim users: ',dim(users),'\n')
+
 # make currency list
 fpt[,cp:=paste0(currency1,currency2)]
 
