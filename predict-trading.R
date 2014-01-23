@@ -63,7 +63,7 @@ if(grepl('yen|barley|corn',hostname)) {
     par.cores <- detectCores()
 } else {
     setwd('~/Data/Currensee/')
-    par.cores <- 1
+    par.cores <- 2
 }
 
 fpt <- readRDS('forexposition.Rds')
@@ -122,6 +122,19 @@ users[is.na(minday) | is.na(maxday),
     c('minday','maxday','missing_dates') := list(g.min.day,g.max.day,1)]
 
 # start the reactor
+# f <- fifo(tempfile(), open="w+b", blocking=T)
+# if (inherits(mcfork(), "masterProcess")) {
+#     # Child
+#     max.iter <- length(users$user_id)
+#     progress <- 0.0
+#     while (progress <= length(users$user_id) && !isIncomplete(f)) {
+#         msg <- readBin(f, "double")
+#         progress <- progress + as.numeric(msg)
+#         cat(sprintf("Progress: %.2f%%\n", (progress / length(users$user_id)) * 100))
+#     } 
+#     mcexit()
+# }
+
 gaps <- 5:1
 resdts <- mclapply(users$user_id,
     mc.preschedule=FALSE, mc.cores=par.cores,
@@ -141,63 +154,17 @@ resdts <- mclapply(users$user_id,
         resdts <- lapply(u.minday:u.maxday,
             function(cday) success.by.currency(cday,u.alts,u.fpt,alts.fpt))
 
-        # resdts <- lapply(u.minday:u.maxday, function(cday) {
-        #         idx <- cday - u.minday + 1
-
-        #         # hasopen <- dim(u.fpt[openday==cday])[1] > 0
-
-        #         c.u.alts <- u.alts[senddate/86400000 < cday, recipientid]
-
-        #         c.u.fpt <- u.fpt
-        #         c.alts.fpt <- alts.fpt[user_id %in% c.u.alts]
-
-        #         resdt <- data.table()
-        #         for (gap in gaps) {
-        #             c.u.fpt <- c.u.fpt[closeday < cday & closeday >= cday - gap]
-        #             c.alts.fpt <- c.alts.fpt[closeday < cday & closeday >= cday - gap]
-        #             u.res <- c.u.fpt[,list(
-        #                     day=cday,
-        #                     gap=gap,
-        #                     type='ego',
-        #                     dpnl_sum=sum(dollarpnl),
-        #                     dpnl_mean=mean(dollarpnl),
-        #                     dpnl_pos=sum(dollarpnl[dollarpnl>0]),
-        #                     dpnl_neg=sum(dollarpnl[dollarpnl<0]),
-        #                     ntotal=.N,
-        #                     npos=sum(dollarpnl>0),
-        #                     nneg=sum(dollarpnl<0)
-        #                 ),by=cp]
-        #             alt.res <- c.alts.fpt[,list(
-        #                     day=cday,
-        #                     gap=gap,
-        #                     type='alter',
-        #                     dpnl_sum=sum(dollarpnl),
-        #                     dpnl_mean=mean(dollarpnl),
-        #                     dpnl_pos=sum(dollarpnl[dollarpnl>0]),
-        #                     dpnl_neg=sum(dollarpnl[dollarpnl<0]),
-        #                     ntotal=.N,
-        #                     npos=sum(dollarpnl>0),
-        #                     nneg=sum(dollarpnl<0)
-        #                 ),by=cp]
-
-        #             if (dim(resdt)[1]==0 && 
-        #                 dim(u.res)[1]==0 &&
-        #                 dim(alt.res)[1]==0) {
-        #                 # lol
-        #             } else {
-        #                 resdt <- rbind(resdt,u.res,alt.res)
-        #             }
-        #         }
-        #         resdt
-        #     })
-
         resdt <- rbindlist(resdts)
         cat('dim: ',dim(resdt),'\n')
 
         if (dim(resdt)[1] > 0) {
             resdt[,user_id:=uid]
         }
+
+        # report and return output
+        # writeBin(1.0,f)
         resdt
     })
+# close(f)
 
 resdt <- rbindlist(resdts)
