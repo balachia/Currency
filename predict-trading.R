@@ -7,8 +7,10 @@ rm(list=ls())
 hostname <- Sys.info()['nodename']
 if(grepl('yen|barley|corn',hostname)) {
     setwd('~/2YP/data/')
+    par.cores <- detectCores()
 } else {
     setwd('~/Data/Currensee/')
+    par.cores <- 2
 }
 
 fpt <- readRDS('forexposition.Rds')
@@ -66,7 +68,8 @@ users[is.na(minday) | is.na(maxday),
 
 # start the reactor
 gaps <- 5:1
-resdts <- mclapply(users$user_id, mc.preschedule=FALSE,
+resdts <- mclapply(users$user_id,
+    mc.preschedule=FALSE, mc.cores=par.cores,
     FUN=function(uid) {
         print(uid)
         u.minday <- users[user_id==uid,minday]
@@ -143,3 +146,5 @@ resdts <- mclapply(users$user_id, mc.preschedule=FALSE,
         }
         resdt
     })
+
+resdt <- rbindlist(resdts)
