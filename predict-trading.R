@@ -1,15 +1,11 @@
 library(plyr)
 library(data.table)
 
-dt.rbind <- function(dt1,dt2) {
-
-}
-
 rm(list=ls())
 
 hostname <- Sys.info()['nodename']
 if(grepl('yen|barley|corn',hostname)) {
-    setwd('~/2YP/data')
+    setwd('~/2YP/data/')
 } else {
     setwd('~/Data/Currensee/')
 }
@@ -34,6 +30,15 @@ user_stats <- dbap[,
     by=user_id]
 user_stats[,gap:=maxday-minday]
 
+setkey(users,user_id)
+setkey(user_stats,user_id)
+users <- user_stats[users]
+
+# sample some users
+set.seed(1)
+users[,selector := runif(.N)]
+users <- users[selector < 0.01]
+
 # make currency list
 fpt[,cp:=paste0(currency1,currency2)]
 
@@ -43,27 +48,27 @@ fpt[,c('openday','closeday') := list(
         floor(closedate / 86400000)
     )]
 
-# sample some users
-set.seed(1)
-users[,selector := runif(.N)]
-users <- users[selector < 0.01]
-
-# censor to minimum opening day
-g.min.day <- ceiling(quantile(fpt$opendate/86400000, 0.0001))
-user_stats[minday < g.min.day, minday := g.min.day]
-user_stats[,gap:=maxday-minday]
+# censor to minimum opening day, jan 1 2008
+# max day is jan 2, 2014
+# g.min.day <- ceiling(quantile(fpt$opendate/86400000, 0.0001))
+g.min.day <- 1199145600000 / 86400000
+g.max.day <- 16072
+users[minday < g.min.day, minday := g.min.day]
+users[,gap:=maxday-minday]
 fpt <- fpt[opendate / 86400000 >= g.min.day]
 fpt <- fpt[!is.na(dollarpnl)]
 
-# statistics
-stats <- list(test=volume)
+# correct bad users:
+users[,missing_dates:=0]
+users[is.na(minday) | is.na(maxday),
+    c('minday','maxday','missing_dates') := list(g.min.day,g.max.day,1)]
 
 # start the reactor
 gaps <- 5:1
 resdts <- lapply(users$user_id, function(uid) {
         print(uid)
-        u.minday <- user_stats[user_id==uid,minday]
-        u.maxday <- user_stats[user_id==uid,maxday]
+        u.minday <- users[user_id==uid,minday]
+        u.maxday <- users[user_id==uid,maxday]
 
         # get alters
         u.alts <- ld[senderid == uid]
@@ -129,8 +134,8 @@ resdts <- lapply(users$user_id, function(uid) {
             })
 
         resdt <- rbindlist(resdts)
-        print(dim(resdt))
-        
+        cat('dim: ',dim(resdt),'\n')
+
         if (dim(resdt)[1] > 0) {
             resdt[,user_id:=uid]
         }
