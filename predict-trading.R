@@ -4,13 +4,66 @@ library(data.table)
 
 rm(list=ls())
 
+success.by.currency <- function(c.day,u.alts,u.fpt,alts.fpt) {
+    # idx <- c.day - u.minday + 1
+
+    # hasopen <- dim(u.fpt[openday==c.day])[1] > 0
+
+    # 86,400,000 is a day in milliseconds
+
+    # restrict to alters as of c.day
+    c.u.alts <- u.alts[senddate/86400000 < c.day, recipientid]
+
+    c.u.fpt <- u.fpt
+    c.alts.fpt <- alts.fpt[user_id %in% c.u.alts]
+
+    resdt <- data.table()
+    for (gap in gaps) {
+        c.u.fpt <- c.u.fpt[closeday < c.day & closeday >= c.day - gap]
+        c.alts.fpt <- c.alts.fpt[closeday < c.day & closeday >= c.day - gap]
+        u.res <- c.u.fpt[,list(
+                day=c.day,
+                gap=gap,
+                type='ego',
+                dpnl_sum=sum(dollarpnl),
+                dpnl_mean=mean(dollarpnl),
+                dpnl_pos=sum(dollarpnl[dollarpnl>0]),
+                dpnl_neg=sum(dollarpnl[dollarpnl<0]),
+                ntotal=.N,
+                npos=sum(dollarpnl>0),
+                nneg=sum(dollarpnl<0)
+            ),by=cp]
+        alt.res <- c.alts.fpt[,list(
+                day=c.day,
+                gap=gap,
+                type='alter',
+                dpnl_sum=sum(dollarpnl),
+                dpnl_mean=mean(dollarpnl),
+                dpnl_pos=sum(dollarpnl[dollarpnl>0]),
+                dpnl_neg=sum(dollarpnl[dollarpnl<0]),
+                ntotal=.N,
+                npos=sum(dollarpnl>0),
+                nneg=sum(dollarpnl<0)
+            ),by=cp]
+
+        if (dim(resdt)[1]==0 && 
+            dim(u.res)[1]==0 &&
+            dim(alt.res)[1]==0) {
+            # lol
+        } else {
+            resdt <- rbind(resdt,u.res,alt.res)
+        }
+    }
+    resdt
+}
+
 hostname <- Sys.info()['nodename']
 if(grepl('yen|barley|corn',hostname)) {
     setwd('~/2YP/data/')
     par.cores <- detectCores()
 } else {
     setwd('~/Data/Currensee/')
-    par.cores <- 2
+    par.cores <- 1
 }
 
 fpt <- readRDS('forexposition.Rds')
@@ -84,61 +137,59 @@ resdts <- mclapply(users$user_id,
         u.fpt <- fpt[user_id==uid,]
         alts.fpt <- fpt[user_id %in% u.alts$recipientid]
 
-        # cps <- unique(c(u.fpt[,cp],alts.fpt[,cp]))
-
-        # resdt <- data.table(day=u.minday:u.maxday)
-
         # loop over days
-        resdts <- lapply(u.minday:u.maxday, function(cday) {
-                # print(cday)
-                idx <- cday - u.minday + 1
+        resdts <- lapply(u.minday:u.maxday,
+            function(cday) success.by.currency(cday,u.alts,u.fpt,alts.fpt))
 
-                # hasopen <- dim(u.fpt[openday==cday])[1] > 0
+        # resdts <- lapply(u.minday:u.maxday, function(cday) {
+        #         idx <- cday - u.minday + 1
 
-                c.u.alts <- u.alts[senddate/86400000 < cday, recipientid]
+        #         # hasopen <- dim(u.fpt[openday==cday])[1] > 0
 
-                c.u.fpt <- u.fpt
-                c.alts.fpt <- alts.fpt[user_id %in% c.u.alts]
+        #         c.u.alts <- u.alts[senddate/86400000 < cday, recipientid]
 
-                resdt <- data.table()
-                for (gap in gaps) {
-                    c.u.fpt <- c.u.fpt[closeday < cday & closeday >= cday - gap]
-                    c.alts.fpt <- c.alts.fpt[closeday < cday & closeday >= cday - gap]
-                    u.res <- c.u.fpt[,list(
-                            day=cday,
-                            gap=gap,
-                            type='ego',
-                            dpnl_sum=sum(dollarpnl),
-                            dpnl_mean=mean(dollarpnl),
-                            dpnl_pos=sum(dollarpnl[dollarpnl>0]),
-                            dpnl_neg=sum(dollarpnl[dollarpnl<0]),
-                            ntotal=.N,
-                            npos=sum(dollarpnl>0),
-                            nneg=sum(dollarpnl<0)
-                        ),by=cp]
-                    alt.res <- c.alts.fpt[,list(
-                            day=cday,
-                            gap=gap,
-                            type='alter',
-                            dpnl_sum=sum(dollarpnl),
-                            dpnl_mean=mean(dollarpnl),
-                            dpnl_pos=sum(dollarpnl[dollarpnl>0]),
-                            dpnl_neg=sum(dollarpnl[dollarpnl<0]),
-                            ntotal=.N,
-                            npos=sum(dollarpnl>0),
-                            nneg=sum(dollarpnl<0)
-                        ),by=cp]
+        #         c.u.fpt <- u.fpt
+        #         c.alts.fpt <- alts.fpt[user_id %in% c.u.alts]
 
-                    if (dim(resdt)[1]==0 && 
-                        dim(u.res)[1]==0 &&
-                        dim(alt.res)[1]==0) {
-                        # lol
-                    } else {
-                        resdt <- rbind(resdt,u.res,alt.res)
-                    }
-                }
-                resdt
-            })
+        #         resdt <- data.table()
+        #         for (gap in gaps) {
+        #             c.u.fpt <- c.u.fpt[closeday < cday & closeday >= cday - gap]
+        #             c.alts.fpt <- c.alts.fpt[closeday < cday & closeday >= cday - gap]
+        #             u.res <- c.u.fpt[,list(
+        #                     day=cday,
+        #                     gap=gap,
+        #                     type='ego',
+        #                     dpnl_sum=sum(dollarpnl),
+        #                     dpnl_mean=mean(dollarpnl),
+        #                     dpnl_pos=sum(dollarpnl[dollarpnl>0]),
+        #                     dpnl_neg=sum(dollarpnl[dollarpnl<0]),
+        #                     ntotal=.N,
+        #                     npos=sum(dollarpnl>0),
+        #                     nneg=sum(dollarpnl<0)
+        #                 ),by=cp]
+        #             alt.res <- c.alts.fpt[,list(
+        #                     day=cday,
+        #                     gap=gap,
+        #                     type='alter',
+        #                     dpnl_sum=sum(dollarpnl),
+        #                     dpnl_mean=mean(dollarpnl),
+        #                     dpnl_pos=sum(dollarpnl[dollarpnl>0]),
+        #                     dpnl_neg=sum(dollarpnl[dollarpnl<0]),
+        #                     ntotal=.N,
+        #                     npos=sum(dollarpnl>0),
+        #                     nneg=sum(dollarpnl<0)
+        #                 ),by=cp]
+
+        #             if (dim(resdt)[1]==0 && 
+        #                 dim(u.res)[1]==0 &&
+        #                 dim(alt.res)[1]==0) {
+        #                 # lol
+        #             } else {
+        #                 resdt <- rbind(resdt,u.res,alt.res)
+        #             }
+        #         }
+        #         resdt
+        #     })
 
         resdt <- rbindlist(resdts)
         cat('dim: ',dim(resdt),'\n')
