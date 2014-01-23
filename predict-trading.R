@@ -135,7 +135,7 @@ users[is.na(minday) | is.na(maxday),
 #     mcexit()
 # }
 
-gaps <- 5:1
+gaps <- 10:1
 resdts <- mclapply(users$user_id,
     mc.preschedule=FALSE, mc.cores=par.cores,
     FUN=function(uid) {
