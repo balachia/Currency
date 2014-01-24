@@ -62,7 +62,11 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 
     dbap.stats <- u.dbap[day < c.day,list(
             nd=sum(netDeposits),
-            ndpnl=sum(dollarPnl)
+            posd=sum(netDeposits[netDeposits>0]),
+            negd=sum(netDeposits[netDeposits<0]),
+            ndpnl=sum(dollarPnl),
+            posdpnl=sum(dollarPnl[dollarPnl>0]),
+            ndegpnl=sum(dollarPnl[dollarPnl<0])
         )]
 
     last.open.balances <- u.dbap[, .SD[which.max(day),list(openBalance,day)], by=brokerAccount_id]
@@ -72,17 +76,27 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
                 'opened_today',
                 'hadopen',
                 'netdeposits',
+                'posdeposits',
+                'negdeposits',
                 'totaldpnl',
+                'posdpnl',
+                'negdpnl',
                 'openbalance'
             ) := list(
                 u.dbap[day==c.day,sum(netDeposits)],
                 dim(u.fpt[openday==c.day])[1],
                 dim(u.fpt[openday<c.day & closeday>=c.day])[1],
                 dbap.stats$nd,
+                dbap.stats$posd,
+                dbap.stats$negd,
                 dbap.stats$ndpnl,
+                dbap.stats$posdpnl,
+                dbap.stats$negdpnl,
                 last.open.balances[,sum(openBalance)]
             )
         ]
+
+    resdt
 }
 
 # run settings
