@@ -67,8 +67,8 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 
     last.open.balances <- u.dbap[, .SD[which.max(day),list(openBalance,day)], by=brokerAccount_id]
 
-
     resdt[,c(
+                'haddeposittoday',
                 'hadopentoday',
                 'openedtoday',
                 'hadopen',
@@ -76,6 +76,7 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
                 'totaldpnl',
                 'openbalance'
             ) := list(
+                u.dbap[day==c.day,sum(netDeposits)],
                 dim(u.fpt[openday==c.day])[1] > 0,
                 dim(u.fpt[openday==c.day])[1],
                 dim(u.fpt[openday<c.day & closeday>=c.day])[1],
