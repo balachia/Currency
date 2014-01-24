@@ -87,7 +87,7 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 
 # run settings
 SAMP.FRAC <- 0.1
-FUNC.NAME <- 'success.by.currency'
+FUNC.NAME <- 'day.stats'
 
 # system specific settings
 hostname <- Sys.info()['nodename']
