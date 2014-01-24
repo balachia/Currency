@@ -4,7 +4,7 @@ library(data.table)
 
 rm(list=ls())
 
-success.by.currency <- function(c.day,u.alts,u.fpt,alts.fpt) {
+success.by.currency <- function(c.day,u.alts,u.fpt,alts.fpt,gaps) {
     # idx <- c.day - u.minday + 1
 
     # hasopen <- dim(u.fpt[openday==c.day])[1] > 0
@@ -57,6 +57,37 @@ success.by.currency <- function(c.day,u.alts,u.fpt,alts.fpt) {
     resdt
 }
 
+day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
+    resdt <- data.table(day=c.day)
+
+    dbap.stats <- u.dbap[day < c.day,list(
+            nd=sum(netDeposits),
+            ndpnl=sum(dollarPnl)
+        )]
+
+    last.open.balances <- u.dbap[, .SD[which.max(day),list(openBalance,day)], by=brokerAccount_id]
+
+
+    resdt[,c(
+                'hadopentoday',
+                'openedtoday',
+                'hadopen',
+                'netdeposits',
+                'totaldpnl',
+                'openbalance'
+            ) := list(
+                dim(u.fpt[openday==c.day])[1] > 0,
+                dim(u.fpt[openday==c.day])[1],
+                dim(u.fpt[openday<c.day & closeday>=c.day])[1],
+                dbap.stats$nd,
+                dbap.stats$ndpnl,
+                u.dbap[day==cday,openBalance],
+                last.open.balances[,sum(openBalance)]
+            )
+        ]
+}
+
+# system specific settings
 hostname <- Sys.info()['nodename']
 if(grepl('yen|barley|corn',hostname)) {
     setwd('~/2YP/data/')
@@ -66,6 +97,7 @@ if(grepl('yen|barley|corn',hostname)) {
     par.cores <- 2
 }
 
+# load in data
 fpt <- readRDS('forexposition.Rds')
 dbap <- readRDS('dailybrokeraccount.Rds')
 ld <- readRDS('linkdata.Rds')
@@ -100,11 +132,14 @@ cat('dim users: ',dim(users),'\n')
 # make currency list
 fpt[,cp:=paste0(currency1,currency2)]
 
-# make days
+# make days, with correction for trading day
+# dear god, i have daylight savings time in here
 fpt[,c('openday','closeday') := list(
-        floor(opendate / 86400000),
-        floor(closedate / 86400000)
+        floor((opendate / 86400000) + 0.125),
+        floor((closedate / 86400000) + 0.125)
     )]
+dbap[,date:=day]
+dbap[,day:=ceiling(date / 86400000)]
 
 # censor to minimum opening day, jan 1 2008
 # max day is jan 2, 2014
@@ -147,12 +182,14 @@ resdts <- mclapply(users$user_id,
         u.alts <- ld[senderid == uid]
 
         # get user and friends' transactions
+        u.dbap <- dbap[user_id==uid,]
         u.fpt <- fpt[user_id==uid,]
         alts.fpt <- fpt[user_id %in% u.alts$recipientid]
 
         # loop over days
         resdts <- lapply(u.minday:u.maxday,
-            function(cday) success.by.currency(cday,u.alts,u.fpt,alts.fpt))
+            function(cday) success.by.currency(cday,u.alts,u.fpt,alts.fpt,gaps))
+            # function(cday) day.stats(cday,u.alts,u.fpt,alts.fpt,u.dbap))
 
         resdt <- rbindlist(resdts)
         cat('dim: ',dim(resdt),'\n')
