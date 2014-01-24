@@ -101,7 +101,7 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 
 # run settings
 SAMP.FRAC <- 0.1
-FUNC.NAME <- 'day.stats'
+FUNC.NAME <- 'success.by.currency'
 
 cat('settings\n')
 cat(SAMP.FRAC,'\n')
