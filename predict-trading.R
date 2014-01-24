@@ -100,7 +100,7 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 }
 
 # run settings
-SAMP.FRAC <- 0.1
+SAMP.FRAC <- 1.0
 FUNC.NAME <- 'day.stats'
 
 # system specific settings
@@ -211,9 +211,9 @@ resdts <- mclapply(users$user_id,
         alts.fpt <- fpt[user_id %in% u.alts$recipientid]
 
         # loop over days
-        if (FUNC.NAME ==  'day.stats') {
+        if (FUNC.NAME ==  'success.by.currency') {
             c.func <- function(cday) success.by.currency(cday,u.alts,u.fpt,alts.fpt,gaps)
-        } else if (FUNC.NAME ==  'success.by.currency') {
+        } else if (FUNC.NAME ==  'day.stats') {
             c.func <- function(cday) day.stats(cday,u.alts,u.fpt,alts.fpt,u.dbap)
         }
 
