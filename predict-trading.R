@@ -101,11 +101,7 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 
 # run settings
 SAMP.FRAC <- 0.1
-FUNC.NAME <- 'success.by.currency'
-
-cat('settings\n')
-cat(SAMP.FRAC,'\n')
-cat(FUNC.NAME,'\n')
+FUNC.NAME <- 'day.stats'
 
 # system specific settings
 hostname <- Sys.info()['nodename']
@@ -116,6 +112,11 @@ if(grepl('yen|barley|corn',hostname)) {
     setwd('~/Data/Currensee/')
     par.cores <- 2
 }
+
+cat('settings\n')
+cat(SAMP.FRAC,'\n')
+cat(FUNC.NAME,'\n')
+cat('cores: ',par.cores,'\n')
 
 # load in data
 fpt <- readRDS('forexposition.Rds')
