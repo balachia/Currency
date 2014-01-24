@@ -103,6 +103,10 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 SAMP.FRAC <- 0.1
 FUNC.NAME <- 'day.stats'
 
+cat('settings\n')
+cat(SAMP.FRAC,'\n')
+cat(FUNC.NAME,'\n')
+
 # system specific settings
 hostname <- Sys.info()['nodename']
 if(grepl('yen|barley|corn',hostname)) {
