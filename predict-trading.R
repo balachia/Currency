@@ -68,25 +68,26 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
     last.open.balances <- u.dbap[, .SD[which.max(day),list(openBalance,day)], by=brokerAccount_id]
 
     resdt[,c(
-                'haddeposittoday',
-                'hadopentoday',
-                'openedtoday',
+                'deposited_today',
+                'opened_today',
                 'hadopen',
                 'netdeposits',
                 'totaldpnl',
                 'openbalance'
             ) := list(
                 u.dbap[day==c.day,sum(netDeposits)],
-                dim(u.fpt[openday==c.day])[1] > 0,
                 dim(u.fpt[openday==c.day])[1],
                 dim(u.fpt[openday<c.day & closeday>=c.day])[1],
                 dbap.stats$nd,
                 dbap.stats$ndpnl,
-                u.dbap[day==cday,openBalance],
                 last.open.balances[,sum(openBalance)]
             )
         ]
 }
+
+# run settings
+SAMP.FRAC <- 0.1
+FUNC.NAME <- 'success.by.currency'
 
 # system specific settings
 hostname <- Sys.info()['nodename']
@@ -126,7 +127,7 @@ users <- user_stats[users]
 # sample some users
 set.seed(1)
 users[,selector := runif(.N)]
-users <- users[selector < 0.1]
+users <- users[selector < SAMP.FRAC]
 
 cat('dim users: ',dim(users),'\n')
 
@@ -158,6 +159,8 @@ users[is.na(minday) | is.na(maxday),
     c('minday','maxday','missing_dates') := list(g.min.day,g.max.day,1)]
 
 # start the reactor
+# free mars
+
 # f <- fifo(tempfile(), open="w+b", blocking=T)
 # if (inherits(mcfork(), "masterProcess")) {
 #     # Child
@@ -188,9 +191,15 @@ resdts <- mclapply(users$user_id,
         alts.fpt <- fpt[user_id %in% u.alts$recipientid]
 
         # loop over days
+        if (FUNC.NAME ==  'day.stats') {
+            c.func <- function(cday) success.by.currency(cday,u.alts,u.fpt,alts.fpt,gaps)
+        } else if (FUNC.NAME ==  'success.by.currency') {
+            c.func <- function(cday) day.stats(cday,u.alts,u.fpt,alts.fpt,u.dbap)
+        }
+
         resdts <- lapply(u.minday:u.maxday,
-            function(cday) success.by.currency(cday,u.alts,u.fpt,alts.fpt,gaps))
-            # function(cday) day.stats(cday,u.alts,u.fpt,alts.fpt,u.dbap))
+            # function(cday) success.by.currency(cday,u.alts,u.fpt,alts.fpt,gaps))
+            c.func)
 
         resdt <- rbindlist(resdts)
         cat('dim: ',dim(resdt),'\n')
@@ -206,3 +215,5 @@ resdts <- mclapply(users$user_id,
 # close(f)
 
 resdt <- rbindlist(resdts)
+
+saveRDS(resdt,paste0(FUNC.NAME,'-',SAMP.FRAC,'samp.Rds'))
