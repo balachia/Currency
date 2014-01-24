@@ -66,7 +66,7 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
             negd=sum(netDeposits[netDeposits<0]),
             ndpnl=sum(dollarPnl),
             posdpnl=sum(dollarPnl[dollarPnl>0]),
-            ndegpnl=sum(dollarPnl[dollarPnl<0])
+            negdpnl=sum(dollarPnl[dollarPnl<0])
         )]
 
     last.open.balances <- u.dbap[, .SD[which.max(day),list(openBalance,day)], by=brokerAccount_id]
@@ -101,7 +101,7 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 
 # run settings
 SAMP.FRAC <- 1.0
-FUNC.NAME <- 'success.by.currency'
+FUNC.NAME <- 'day.stats'
 
 # system specific settings
 hostname <- Sys.info()['nodename']
