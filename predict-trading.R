@@ -172,9 +172,9 @@ fpt <- fpt[opendate / 86400000 >= g.min.day]
 fpt <- fpt[!is.na(dollarpnl)]
 
 # correct bad users:
-users[,missing_dates:=0]
+users[,dates_imputed:=0]
 users[is.na(minday) | is.na(maxday),
-    c('minday','maxday','missing_dates') := list(g.min.day,g.max.day,1)]
+    c('minday','maxday','dates_imputed') := list(g.min.day,g.max.day,1)]
 
 # start the reactor
 # free mars
@@ -199,6 +199,7 @@ resdts <- mclapply(users$user_id,
         print(uid)
         u.minday <- users[user_id==uid,minday]
         u.maxday <- users[user_id==uid,maxday]
+        u.imputed <- users[user_id==uid,dates_imputed]
 
         # get alters
         u.alts <- ld[senderid == uid]
@@ -223,7 +224,7 @@ resdts <- mclapply(users$user_id,
         cat('dim: ',dim(resdt),'\n')
 
         if (dim(resdt)[1] > 0) {
-            resdt[,user_id:=uid]
+            resdt[,c('user_id','imputed') := list(uid,u.imputed)]
         }
 
         # report and return output
