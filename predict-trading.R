@@ -100,7 +100,8 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 }
 
 # run settings
-SAMP.FRAC <- 0.5
+SAMP.FRAC <- 0.75
+MIN.SAMP.FRAC <- 0.5
 #FUNC.NAME <- 'day.stats'
 FUNC.NAME <- 'success.by.currency'
 
@@ -152,7 +153,7 @@ users <- user_stats[users]
 set.seed(1)
 users[,selector := runif(.N)]
 # users <- users[selector < SAMP.FRAC]
-users <- users[selector >= 0.25 & selector < SAMP.FRAC]
+users <- users[selector >= MIN.SAMP.FRAC & selector < SAMP.FRAC]
 
 cat('dim users: ',dim(users),'\n')
 
