@@ -69,7 +69,7 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
             negdpnl=sum(dollarPnl[dollarPnl<0])
         )]
 
-    last.open.balances <- u.dbap[, .SD[which.max(day),list(openBalance,day)], by=brokerAccount_id]
+    last.open.balances <- u.dbap[day < c.day, .SD[which.max(day),list(openBalance,day)], by=brokerAccount_id]
 
     resdt[,c(
                 'deposited_today',
@@ -100,9 +100,9 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 }
 
 # run settings
-SAMP.FRAC <- 0.5
-#FUNC.NAME <- 'day.stats'
-FUNC.NAME <- 'success.by.currency'
+SAMP.FRAC <- 1.0
+FUNC.NAME <- 'day.stats'
+# FUNC.NAME <- 'success.by.currency'
 
 # system specific settings
 hostname <- Sys.info()['nodename']
@@ -143,6 +143,10 @@ user_stats[,gap:=maxday-minday]
 setkey(users,user_id)
 setkey(user_stats,user_id)
 users <- user_stats[users]
+
+# clean out inactive broker accounts in dbap
+# nah, later
+# unclear what this would do
 
 # sample some users
 set.seed(1)
