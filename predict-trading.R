@@ -178,7 +178,7 @@ g.min.day <- 1199145600000 / 86400000
 g.max.day <- 16072
 users[minday < g.min.day, minday := g.min.day]
 users[,gap:=maxday-minday]
-fpt <- fpt[opendate / 86400000 >= g.min.day]
+fpt <- fpt[openday >= g.min.day]
 fpt <- fpt[!is.na(dollarpnl)]
 
 # correct bad users:
