@@ -155,6 +155,8 @@ users[,selector := runif(.N)]
 # users <- users[selector < SAMP.FRAC]
 users <- users[selector >= MIN.SAMP.FRAC & selector < SAMP.FRAC]
 
+ec <- ecdf(users[,user_id])
+
 cat('dim users: ',dim(users),'\n')
 
 # make currency list
@@ -204,7 +206,8 @@ gaps <- 10:1
 resdts <- mclapply(users$user_id,
     mc.preschedule=FALSE, mc.cores=par.cores,
     FUN=function(uid) {
-        print(uid)
+        cat(uid, "(", ec(uid), ")\n")
+        
         u.minday <- users[user_id==uid,minday]
         u.maxday <- users[user_id==uid,maxday]
         u.imputed <- users[user_id==uid,dates_imputed]
