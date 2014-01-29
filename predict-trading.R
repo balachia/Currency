@@ -246,4 +246,4 @@ resdts <- mclapply(users$user_id,
 
 resdt <- rbindlist(resdts)
 
-saveRDS(resdt,paste0(FUNC.NAME,'-',SAMP.FRAC,'samp.Rds'))
+saveRDS(resdt,paste0(FUNC.NAME,'-',MIN.SAMP.FRAC,'-',SAMP.FRAC,'samp.Rds'))
