@@ -100,8 +100,8 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 }
 
 # run settings
-SAMP.FRAC <- 0.75
-MIN.SAMP.FRAC <- 0.5
+SAMP.FRAC <- 1.0
+MIN.SAMP.FRAC <- 0.8
 #FUNC.NAME <- 'day.stats'
 FUNC.NAME <- 'success.by.currency'
 
@@ -116,6 +116,7 @@ if(grepl('yen|barley|corn',hostname)) {
 }
 
 cat('settings\n')
+cat(MIN.SAMP.FRAC,'\n')
 cat(SAMP.FRAC,'\n')
 cat(FUNC.NAME,'\n')
 cat('cores: ',par.cores,'\n')
@@ -202,7 +203,7 @@ users[is.na(minday) | is.na(maxday),
 #     mcexit()
 # }
 
-gaps <- 10:1
+gaps <- c(29,15,10:1)
 resdts <- mclapply(users$user_id,
     mc.preschedule=FALSE, mc.cores=par.cores,
     FUN=function(uid) {

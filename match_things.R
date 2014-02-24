@@ -52,12 +52,20 @@ poor.cem <- function(dt, keys, snames=NULL, qnames=NULL, bkeys=keys) {
     kdt[,c(keys,'grp'), with=FALSE]
 }
 
-setwd('~/Data/Currensee/')
+if (grepl('.*stanford\\.edu',Sys.info()[['nodename']])) {
+    DATA.DIR <- '/archive/gsb/vashevko/Currensee/'
+    OUT.DIR <- '~/2YP/writing/'
+} else {
+    DATA.DIR <- '~/Data/Currensee/'
+    OUT.DIR <- '~/Dropbox/Currensee Project/writing/'
+}
+
+setwd(DATA.DIR)
 
 # load in data
-aus <- readRDS('active-user-quantiles.Rds')
-dt <- readRDS('day.stats-0-1samp.Rds')
-fpt <- readRDS('forexposition.Rds')
+aus <- readRDS('./Rds/active-user-quantiles.Rds')
+dt <- readRDS('./Rds/day.stats-0-1samp.Rds')
+fpt <- readRDS('./Rds/forexposition.Rds')
 ffdfns <- load.ffdf('./ffdb/sbc')
 ffd <- ffdfns$ffd
 
@@ -313,7 +321,6 @@ c.dt2 <- merge(c.dt2,grps)
 
 c.dt.final <- c.dt2[nuser > 1 & nobs > 1 & tag == 1]
 
-setwd('~/Dropbox/Currensee project/writing/tables/')
 
 # test $ amounts
 summary(md1 <- clogit(bopen ~ scale(dpnl_mean_ego_2) + strata(grp), data=c.dt.final))
@@ -415,6 +422,9 @@ summary(clogit(bl5 ~ scale(npos_ego_2)*scale(ntotal_ego_2) +
                    scale(npos_ego_2)*(scale(ntotal_alter_maj_2) + scale(ntotal_alter_min_2)) +
                    strata(grp), data=c.dt.final))
 
+
+# write out results
+setwd(paste0(OUT.DIR,'tables/'))
 
 texreg(list(md1,md2,md3,md4),
        file='matching-dlrs.tex', label='tab:dlrs', digits=3, float.pos='htb',
