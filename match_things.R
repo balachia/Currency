@@ -32,8 +32,9 @@ poor.cem <- function(dt, keys, snames=NULL, qnames=NULL, bkeys=keys) {
     cat('making groups\n')
     kdt[,grp := .GRP, by=allnames]
     
-    cat('# Groups:', kdt[,max(grp)], '\n')
-    
+    ngrps <- kdt[,max(grp)]
+    cat('# Groups:', ngrps, '\n')
+
     cat('balance statistics\n')
     cat('# observations\n')
     dat <- kdt[,.N,by=grp][,N]
@@ -43,9 +44,23 @@ poor.cem <- function(dt, keys, snames=NULL, qnames=NULL, bkeys=keys) {
     
     for(key in bkeys) {
         cat(key,':\n')
-        dat <- kdt[,dim(.SD[,.N,by=key])[1],by=grp][,V1]
+#        dat <- kdt[,dim(.SD[,.N,by=key])[1],by=grp][,V1]
+        dat <- kdt[,length(unique(get(key))),by=grp][,V1]
+
+        # try a parallel version...
+#        dats <- mclapply(split(1:ngrps, factor(1:ngrps %% (64 * 2))), 
+#                         mc.cores=64, mc.preschedule=FALSE,
+#                         function (subgrps) {
+#                             sub.dat <- kdt[grp %in% subgrps, length(unique(key)), by=grp][,V1]
+#                             sub.dat
+#                         })
+#        dat <- rbindlist(dats)
+#        print(dats)
+#        print(dat)
+
         print(summary(dat))
         print(quantile(dat,seq(0,1,0.1), na.rm=TRUE))
+        cat('# == 1 ::', sum(dat==1), '(', sum(dat==1) / length(dat), '%)\n')
         cat('\n')
     }
     
@@ -310,7 +325,7 @@ c.dt2 <- c.dt[ntotal_ego_2 > 0]
 print(dim(c.dt2))
 grps <- poor.cem(c.dt2, keys, snames, qnames, bkeys='user_id')
 
-grps[,c('nobs','nuser') := list(.N, .SD[,length(unique(user_id))]),by=grp]
+grps[,c('nobs','nuser') := list(.N, length(unique(user_id))),by=grp]
 # tag unique user observations
 set.seed(1)
 grps[,tag := sample(1:.N,.N), by=list(grp,user_id)]
