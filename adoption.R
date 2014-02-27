@@ -110,8 +110,6 @@ fpt <- merge(fpt,cps,all.x=TRUE)
 
 
 
-# set up the users/currencies under observation
-cp.set <- c('EURUSD','USDCZK')
 
 uids <- aus[Npd_q %in% 2:5 & 
                 med_ob_q %in% 2:5 & 
@@ -196,8 +194,10 @@ c.dt <- merge(c.dt, sbc.e10, all.x=TRUE)
 c.dt[is.na(ntotal.e2), c('ntotal.e2', 'npos.e2', 'nneg.e2') := 0]
 c.dt[is.na(ntotal.e10), c('ntotal.e10', 'npos.e10', 'nneg.e10') := 0]
 
+# set up the users/currencies under observation
 cp.set <- all.adopt.es[,unique(cp)]
-cp.set <- cp.set[1:4]
+# cp.set <- cp.set[1:4]
+cp.set <- c('EURUSD','USDCZK')
 
 # what do we need in the spell split?
 res <- mclapply(cp.set, mc.cores=40, mc.preschedule=FALSE,
@@ -223,7 +223,18 @@ res <- mclapply(cp.set, mc.cores=40, mc.preschedule=FALSE,
         cp.dt
     })
 
+if(!file.exists('dta/adopts.dta')) {
+    library(foreign)
+    all.adopts <- rbindlist(res)
+    write.dta(all.adopts, 'dta/adopts.dta')
+}
 
+stop()
+
+lapply(res, function (cpdt) {
+        print(m.res <- clogit(badopt ~ ntotal.alt + strata(dlapse), data=cpdt))
+        0
+    })
 
 
 
