@@ -197,7 +197,7 @@ c.dt[is.na(ntotal.e10), c('ntotal.e10', 'npos.e10', 'nneg.e10') := 0]
 # set up the users/currencies under observation
 cp.set <- all.adopt.es[,unique(cp)]
 # cp.set <- cp.set[1:4]
-cp.set <- c('EURUSD','USDCZK')
+# cp.set <- c('EURUSD','USDCZK')
 
 # what do we need in the spell split?
 res <- mclapply(cp.set, mc.cores=40, mc.preschedule=FALSE,
@@ -224,9 +224,16 @@ res <- mclapply(cp.set, mc.cores=40, mc.preschedule=FALSE,
     })
 
 if(!file.exists('dta/adopts.dta')) {
+    cat('writing to stata\n')
     library(foreign)
     all.adopts <- rbindlist(res)
+
+    print(object.size(all.adopts), units='auto')
+    print(dim(all.adopts))
+
+    cat('starting write\n')
     write.dta(all.adopts, 'dta/adopts.dta')
+    cat('done with write\n')
 }
 
 stop()
