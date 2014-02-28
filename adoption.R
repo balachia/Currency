@@ -5,11 +5,11 @@
 # split spells on ... 
 # every day with observed friend or self returns?
 
+library(rms)
 library(survival)
 library(data.table)
 library(ffbase)
 library(reshape2)
-library(survival)
 library(texreg)
 library(parallel)
 
@@ -17,6 +17,32 @@ rm(list=ls())
 
 qcuts <- function(x, qs) {
     cut(x, unique(quantile(x, qs, na.rm=TRUE)), labels=FALSE, include.lowest=TRUE)
+}
+
+collapse.to.spells <- function(dt, t.var, grp.vars, sort.vars, coll.vars)  {
+    dt.out <- data.table(dt)
+    dt.out <- dt[do.call(order, dt[,c(grp.vars,sort.vars), with=FALSE])]
+
+    dt.out[, nspell := FALSE]
+    
+    lapply(coll.vars, function (x) {
+        dt.out[, nspell := nspell | (get(x) != c(NA, get(x)[1:(.N-1)])),by=grp.vars]
+        0
+    })
+    
+    dt.out[is.na(nspell), nspell := TRUE]
+    dt.out[,spellid := cumsum(nspell)]
+
+    dt.out[, start := min(get(t.var)) - 1, by=spellid]
+    dt.out[, stop := max(get(t.var)), by=spellid]
+
+#    print(dt.out)
+
+#    return(dt.out)
+
+    dt.out <- dt.out[ dt.out[,.I[.N], by=spellid][,V1]]
+
+    dt.out
 }
 
 poor.cem <- function(dt, keys, snames=NULL, qnames=NULL, bkeys=keys) {
@@ -140,7 +166,7 @@ c.dt <- c.dt[order(user_id,day)]
 c.dt[, bopen := as.integer(opened_today > 0)]
 c.dt[, cumopen := cumsum(bopen) - bopen, by=user_id]
 c.dt[, dlapse := 1:.N, by=list(user_id,cumopen)]
-c.dt[, dlapse := as.factor(dlapse)]
+#c.dt[, dlapse := as.factor(dlapse)]
 c.dt[, c('imputed','bopen','cumopen') := NULL]
 
 # we should insert user's own stats here...
@@ -198,13 +224,16 @@ c.dt[is.na(ntotal.e10), c('ntotal.e10', 'npos.e10', 'nneg.e10') := 0]
 cp.set <- all.adopt.es[,unique(cp)]
 # cp.set <- cp.set[1:4]
 # cp.set <- c('EURUSD','USDCZK')
+# cp.set <- cps[(rank - 1) %% 10 == 0, cp]
 
 # what do we need in the spell split?
-res <- mclapply(cp.set, mc.cores=40, mc.preschedule=FALSE,
+res <- mclapply(cp.set, mc.cores=60, mc.preschedule=FALSE,
     function (ccp) {
         print(ccp)
 #        adopt.es <- fpt[cp == ccp, list(adopt=min(openday)), by=user_id]
         adopt.es <- all.adopt.es[cp == ccp]
+
+        cp.rank <- cps[cp==ccp, rank]
         
         setkey(adopt.es,user_id)
         cp.dt <- merge(c.dt, adopt.es, all.x=TRUE)
@@ -219,11 +248,13 @@ res <- mclapply(cp.set, mc.cores=40, mc.preschedule=FALSE,
         setkey(cp.dt, user_id, day)
         cp.dt <- merge(cp.dt, sbc.a14[cp == ccp, !'cp', with=FALSE], all.x=TRUE) 
         cp.dt[is.na(ntotal.alt), c('ntotal.alt', 'npos.alt', 'nneg.alt') := 0]
+
+        cp.dt[,rank := cp.rank]
         # 
         cp.dt
     })
 
-if(!file.exists('dta/adopts.dta')) {
+if(!file.exists('dta/adopts-m10.dta')) {
     cat('writing to stata\n')
     library(foreign)
     all.adopts <- rbindlist(res)
@@ -232,9 +263,29 @@ if(!file.exists('dta/adopts.dta')) {
     print(dim(all.adopts))
 
     cat('starting write\n')
-    write.dta(all.adopts, 'dta/adopts.dta')
+    write.dta(all.adopts, 'dta/adopts-m10.dta')
     cat('done with write\n')
 }
+
+# put day groups back in
+res <- lapply(res, function(x) {
+        x[, dgrp := cumsum(opened_today>0) - (opened_today>0), by=user_id]
+        x
+    })
+
+res2 <- mclapply(res, mc.cores=60, mc.preschedule=FALSE,
+    function (cdt) {
+        colldt <- collapse.to.spells(cdt, 'dlapse', c('user_id','cp'), 'day',
+            coll.vars=c('ntotal.e2','ntotal.e10','ntotal.alt','dgrp'))
+        colldt
+    })
+
+# saveRDS(res2, 'Rds/adopt.events.m10.Rds')
+saveRDS(res2, 'Rds/adopt.events.Rds')
+
+stop()
+
+
 
 stop()
 
