@@ -211,6 +211,16 @@ unique.users <- all.adopts2[hasboth == 1, length(unique(user_id)), by=grp]
 # prune out non-informative groups
 all.adopts2 <- all.adopts2[hasboth == 1]
 
+# make coarse rank
+all.adopts2[, c('oddball5','oddball10','oddball15','oddball20') := 
+            list(as.numeric(rank > 5),
+                 as.numeric(rank > 10),
+                 as.numeric(rank > 15),
+                 as.numeric(rank > 20))]
+
+# have to consider alter 0 trade days separately...
+all.adopts2[, ntaltGT0 := as.numeric(ntotal.a14 > 0)]
+
 
 
 # ANALYSIS TIME???
@@ -229,7 +239,38 @@ print(summary(me2))
 mr1 <- clogit(badopt ~ ntotal.a14*rank + npos.a14*rank + strata(grp), data = all.adopts2)
 print(summary(mr1))
 mr2 <- clogit(badopt ~ ntotal.a14*npos.a14*rank + strata(grp), data = all.adopts2)
-print(summary(mr1))
+print(summary(mr2))
+
+mcr1 <- clogit(badopt ~ ntotal.a14*oddball10 + npos.a14*oddball10 + strata(grp), data = all.adopts2)
+print(summary(mcr1))
+mcr2 <- clogit(badopt ~ ntotal.a14*npos.a14*oddball10 + strata(grp), data = all.adopts2)
+print(summary(mcr2))
+
+
+# consider alter 0-returns separately...
+m1a <- clogit(badopt ~ ntaltGT0 + ntotal.a14 + strata(grp), data = all.adopts2)
+print(summary(m1a))
+m2a <- clogit(badopt ~ ntaltGT0 + ntotal.a14 + npos.a14 + strata(grp), data = all.adopts2)
+print(summary(m2a))
+m3a <- clogit(badopt ~ ntaltGT0 + ntotal.a14*npos.a14 + strata(grp), data = all.adopts2)
+print(summary(m3a))
+
+me1a <- clogit(badopt ~ ntaltGT0*npos.e2 + ntotal.a14*npos.e2 + npos.a14*npos.e2 + strata(grp), data = all.adopts2)
+print(summary(me1a))
+me2a <- clogit(badopt ~ ntaltGT0*npos.e2 + ntotal.a14*npos.a14*npos.e2 + strata(grp), data = all.adopts2)
+print(summary(me2a))
+
+mr1a <- clogit(badopt ~ ntaltGT0*rank + ntotal.a14*rank + npos.a14*rank + strata(grp), data = all.adopts2)
+print(summary(mr1a))
+mr2a <- clogit(badopt ~ ntaltGT0*rank + ntotal.a14*npos.a14*rank + strata(grp), data = all.adopts2)
+print(summary(mr2a))
+
+mcr1a <- clogit(badopt ~ ntaltGT0*oddball10 + ntotal.a14*oddball10 + npos.a14*oddball10 + strata(grp), data = all.adopts2)
+print(summary(mcr1a))
+mcr2a <- clogit(badopt ~ ntaltGT0*oddball10 + ntotal.a14*npos.a14*oddball10 + strata(grp), data = all.adopts2)
+print(summary(mcr2a))
+
+
 
 # OUTPUT TIME
 setwd(paste0(OUT.DIR,'tables/'))
@@ -239,18 +280,40 @@ setwd(paste0(OUT.DIR,'tables/'))
 #       caption='Conditional Logit: Dollar Returns in Past 2 Days',
 #       custom.coef.names=c('Mean \\$ Returns','Total \\$ Returns','Mean:Total'))
 
-texreg(list(m1,m2,m3),
-       file='adopts-base.tex', label='tab:adopt-base', digits=3, float.pos='htb',
+texreg(list(m1,m2,m3, m1a,m2a,m3a),
+       file='adopts-base.tex', label='tab:adopt-base', digits=5, float.pos='htb',
        caption='Conditional Logit: Baseline Models of Currency Pair Adoption',
-       custom.coef.names=NULL)
+       sideways=TRUE,
+       reorder.coef=c(4,1,2,3),
+       custom.coef.names=c('Alter Total (14d)','Alter Wins (14d)','Alter Wins:Total',
+                           'Alter Trades > 0'))
 
-texreg(list(me1,me2),
-       file='adopts-egoret.tex', label='tab:adopt-ego', digits=3, float.pos='htb',
+texreg(list(me1,me2, me1a, me2a),
+       file='adopts-egoret.tex', label='tab:adopt-ego', digits=5, float.pos='htb',
        caption='Conditional Logit: Currency Pair Adoption with Ego Returns',
-       custom.coef.names=NULL)
+       reorder.coef=c(8,9,1,3,2,4,5,6,7),
+       custom.coef.names=c('Alter Total (14d)','Ego Wins (2d)', 'Alter Wins (14d)',
+                           'Alter Total:Ego Wins','Alter Wins:Ego Wins',
+                           'Alter Total:Wins','Alter Wins:Ego Wins','Alter Total:Alter Wins:Ego Wins',
+                           'Alter Trades > 0','Alter Trades > 0:Ego Wins',
+                           'Alter Total:Ego Wins','Alter Total:Alter Wins:Ego Wins'))
 
-texreg(list(mr1,mr2),
-       file='adopts-rank.tex', label='tab:adopt-rank', digits=3, float.pos='htb',
+texreg(list(mr1,mr2, mr1a, mr2a),
+       file='adopts-rank.tex', label='tab:adopt-rank', digits=5, float.pos='htb',
        caption='Conditional Logit: Currency Pair Adoption with Rank Interaction',
-       custom.coef.names=NULL)
+       reorder.coef=c(8,9,1,3,2,4,5,6,7),
+       custom.coef.names=c('Alter Total (14d)','Currency Rank','Alter Wins (14d)',
+                           'Alter Total:Rank','Alter Wins:Rank',
+                           'Alter Total:Wins','Alter Wins:Rank','Alter Total:Alter Wins:Rank',
+                           'Alter Trades > 0','Alter Trades > 0:Rank',
+                           'Alter Total:Rank','Alter Total:Alter Wins:Rank'))
 
+texreg(list(mcr1,mcr2, mcr1a, mcr2a),
+       file='adopts-coarserank.tex', label='tab:adopt-coarserank', digits=5, float.pos='htb',
+       caption='Conditional Logit: Currency Pair Adoption with Coarse Rank Interaction',
+       reorder.coef=c(8,9,1,3,2,4,5,6,7),
+       custom.coef.names=c('Alter Total (14d)','Oddball Currency (Rank > 10)','Alter Wins (14d)',
+                           'Alter Total:Oddball','Alter Wins:Oddball',
+                           'Alter Total:Wins','Alter Wins:Oddball','Alter Total:Alter Wins:Oddball',
+                           'Alter Trades > 0','Alter Trades > 0:Oddball',
+                           'Alter Total:Oddball','Alter Total:Alter Wins:Oddball'))
