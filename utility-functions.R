@@ -7,7 +7,7 @@ qcuts <- function(x, qs) {
 }
 
 poor.cem <- function(dt, keys, snames=NULL, qnames=NULL, bkeys=keys) {
-    kdt <- dt[,c(keys,snames),with=FALSE]
+    kdt <- dt[,unique(c(keys,snames,bkeys)),with=FALSE]
     setkeyv(dt,keys)
     setkeyv(kdt,keys)
     
@@ -21,10 +21,16 @@ poor.cem <- function(dt, keys, snames=NULL, qnames=NULL, bkeys=keys) {
         NULL
     })
     
-    allnames <- c(snames, paste0(qnames,'_q'))
+    # check that we passed ins ome actual qnames, else we get an issue
+    if(is.null(qnames)) { 
+        allnames <- snames
+    } else { 
+        allnames <- c(snames, paste0(qnames,'_q'))
+    }
     
     cat('making groups\n')
     kdt[,grp := .GRP, by=allnames]
+    kdt[,grpN := .N, by=grp]
     
     ngrps <- kdt[,max(grp)]
     cat('# Groups:', ngrps, '\n')
@@ -54,11 +60,11 @@ poor.cem <- function(dt, keys, snames=NULL, qnames=NULL, bkeys=keys) {
 
         print(summary(dat))
         print(quantile(dat,seq(0,1,0.1), na.rm=TRUE))
-        cat('# == 1 ::', sum(dat==1), '(', sum(dat==1) / length(dat), '%)\n')
+        cat('# == 1 ::', sum(dat==1), '(', 100 * sum(dat==1) / length(dat), '%)\n')
         cat('\n')
     }
     
-    kdt[,c(keys,'grp'), with=FALSE]
+    kdt[,c(keys,'grp','grpN'), with=FALSE]
 }
 
 
