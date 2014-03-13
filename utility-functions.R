@@ -70,7 +70,7 @@ poor.cem <- function(dt, keys, snames=NULL, qnames=NULL, bkeys=keys) {
 
 
 build.lag <- function(dt, lag, collapseby, affix = '') {
-    out <- rbindlist(lapply(0:13, function (x) {
+    out <- rbindlist(lapply(lag, function (x) {
             res <- data.table(dt)
             res[, day := day + x]
             res

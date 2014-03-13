@@ -87,6 +87,33 @@ c.dt <- merge(c.dt, aus[, !aus.bad.cols, with=FALSE], all.x=TRUE)
 # pull out all adoption events
 g.min.day <- 1199145600000 / 86400000
 all.adopt.es <- fpt[,list(adopt = min(openday)), by=list(user_id,cp)]
+lagged.opens <- fpt[,list(openday),by=list(user_id,cp)]
+lagged.opens <- lagged.opens[order(openday)]
+lagged.opens <- lagged.opens[openday > g.min.day]
+lagged.opens[,l.openday := c(-Inf,openday[1:.N-1]), by=list(user_id,cp)]
+lagged.opens[,lapse := openday - l.openday]
+lagged.opens <- lagged.opens[lapse > 0]
+
+# toss out lagged adoptions below 10 days?
+adopt.stats <- lagged.opens[,list(.N,
+                   min=min(lapse),
+                   max=max(lapse),
+                   p10=quantile(lapse,0.1),
+                   p20=quantile(lapse,0.2),
+                   p30=quantile(lapse,0.3),
+                   p40=quantile(lapse,0.4),
+                   p50=quantile(lapse,0.5),
+                   p60=quantile(lapse,0.6),
+                   p70=quantile(lapse,0.7),
+                   p80=quantile(lapse,0.8),
+                   p90=quantile(lapse,0.9)
+                   ),by=cp]
+adopt.stats <- adopt.stats[order(-N)]
+
+flex.adopts <- lagged.opens[lapse > 0]
+flex.adopts[,l.openday := NULL]
+setnames(flex.adopts,c('openday','lapse'),c('day','adlapse'))
+
 
 # throw out each user's first day of currency
 # all.adopt.es <- all.adopt.es[order(user_id,adopt)]
@@ -94,6 +121,31 @@ all.adopt.es[, valid := adopt > min(adopt), by=user_id]
 all.adopt.es <- all.adopt.es[(valid)]
 all.adopt.es <- all.adopt.es[adopt > g.min.day]
 all.adopt.es[,valid := NULL]
+
+# how do i do this in the flex adopt mode....
+flex.adopts[, first.curr := day == min(day), by=user_id]
+flex.adopts[, first.curr := any(first.curr), by=list(user_id,cp)]
+flex.adopts <- flex.adopts[(!first.curr)]
+flex.adopts[, first.curr := NULL]
+
+
+
+# USER INACTIVITY
+# how should we look at periods of inactivity?
+inactivity <- fpt[order(openday), list(openday), by=user_id]
+inactivity <- inactivity[openday > g.min.day]
+inactivity[, L.openday := c(tail(openday,-1),Inf), by=user_id]
+inactivity[, lapse := L.openday - openday]
+inactivity <- inactivity[lapse > 0]
+inact.by.user <- inactivity[, list(p75 = quantile(lapse,0.75),
+                                   p90 = quantile(lapse,0.90),
+                                   p95 = quantile(lapse,0.95),
+                                   p96 = quantile(lapse,0.96),
+                                   p97 = quantile(lapse,0.97),
+                                   p98 = quantile(lapse,0.98),
+                                   p99 = quantile(lapse,0.99)
+                                   ), by=user_id]
+print(summary(inact.by.user))
 
 
 
@@ -111,6 +163,11 @@ sbc.a1d <- sbc.1d[type == 'alter']
 sbc.a14 <- build.lag(sbc.a1d, 0:13, c('user_id','cp','day'), '.a14')
 sbc.e2 <- build.lag(sbc.e1d, 0:1, c('user_id','day'), '.e2')
 sbc.e10 <- build.lag(sbc.e1d, 2:9, c('user_id','day'),'.e10')
+sbc.e60 <- build.lag(sbc.e1d, 0:59, c('user_id','day'),'.e60')
+
+# only need e60 to check for user activity
+sbc.e60[, c('ntotal.e60','npos.e60','nneg.e60') := NULL]
+sbc.e60[, user.active := 1]
 
 # MAKE TRADE EVENTS, INTER-TRADE TIMES...
 # create time since last trade
@@ -124,14 +181,33 @@ c.dt[, c('imputed','bopen','cumopen') := NULL]
 setkey(sbc.a14, user_id, day)
 setkey(sbc.e2, user_id, day)
 setkey(sbc.e10, user_id, day)
+setkey(sbc.e60, user_id, day)
 setkey(c.dt,user_id, day)
 c.dt <- merge(c.dt, sbc.e2, all.x=TRUE)
 c.dt <- merge(c.dt, sbc.e10, all.x=TRUE)
+c.dt <- merge(c.dt, sbc.e60, all.x=TRUE)
 
 c.dt[is.na(ntotal.e2), c('ntotal.e2', 'npos.e2', 'nneg.e2') := 0]
 c.dt[is.na(ntotal.e10), c('ntotal.e10', 'npos.e10', 'nneg.e10') := 0]
+c.dt[is.na(user.active), c('user.active') := 0]
 
 c.dt[,daysactive := day - minday + 1]
+
+# BENCHMARKING
+# by community, self overall, self recent
+c.dt[, all.winfrac := sbc.e1d[,sum(npos) / sum(ntotal)]]
+user.bench <- sbc.e1d[,list(user.winfrac = sum(npos) / sum(ntotal)), by=user_id]
+setkey(user.bench, user_id)
+c.dt <- merge(c.dt, user.bench, by='user_id', all.x=TRUE)
+
+# impute 1:1 ratio to unobserved users (???)
+c.dt[is.na(user.winfrac), user.winfrac := 0.5]
+
+# add in recent shit based on past 8 days...
+c.dt[,winfrac.e10 := npos.e10 / ntotal.e10]
+c.dt[is.na(winfrac.e10), winfrac.e10 := 0.5]
+
+
 
 # BUILD THE WHOLE BASTARD
 # sample out some currencies
@@ -143,19 +219,31 @@ res <- mclapply(cp.set, mc.cores=MC.CORES, mc.preschedule=FALSE,
         print(ccp)
 
         # pull out currency-only adoption events
-        adopt.es <- all.adopt.es[cp == ccp]
+#        adopt.es <- all.adopt.es[cp == ccp]
+        adopt.es <- flex.adopts[cp == ccp]
 
         # get currency pair rank
         cp.rank <- cps[cp==ccp, rank]
         
         # merge in adoption events
-        setkey(adopt.es,user_id)
+        setkey(adopt.es,user_id,day)
         cp.dt <- merge(c.dt, adopt.es, all.x=TRUE)
+        cp.dt <- cp.dt[order(user_id,day)]
 
         # drop observations after first adoption
-        cp.dt <- cp.dt[is.na(adopt) | day <= adopt]
-        cp.dt[, badopt := ifelse(day==adopt,1,0)]
-        cp.dt[is.na(badopt), badopt := 0]
+        # fuck that
+
+        # instead mark days since last adoption...
+        cp.dt[, badopt2 := as.numeric(!is.na(adlapse))]
+        cp.dt[, cum.adopt := cumsum(badopt2) - badopt2, by=user_id]
+        cp.dt[cum.adopt == 0, uselapse := Inf]
+        cp.dt[cum.adopt > 0, uselapse := as.numeric(1:.N), by=list(user_id,cum.adopt)]
+        cp.dt[, badopt := as.numeric(is.infinite(adlapse))]
+
+#        cp.dt <- cp.dt[is.na(adopt) | day <= adopt]
+#        cp.dt[, badopt := ifelse(day==adopt & is.infinite(adlapse),1,0)]
+#        cp.dt[, badopt2 := ifelse(day==adopt & is.infinite(adlapse),1,0)]
+#        cp.dt[is.na(badopt), badopt := 0]
 
         # merge in currency statistics
         cp.dt[, cp := ccp]
@@ -175,6 +263,12 @@ print(system.time(all.adopts <- rbindlist(res)))
 print(dim(all.adopts))
 print(object.size(all.adopts), units='auto')
 
+
+
+
+
+
+# MATCHING
 # now, let's try to throw down a matching...
 
 q.names <- c('totaldpnl','openbalance')
@@ -189,38 +283,58 @@ q.names <- c('totaldpnl','posdpnl','openbalance','ntotal.e10','daysactive')
 s.names <- c('ugrp')
 #s.names <- c('ugrp','cp')
 
+ptm <- proc.time()
 grps <- poor.cem(all.adopts,
                  keys=c('user_id','day','cp'), 
                  snames=s.names,
                  qnames=q.names,
                  bkeys=c('badopt'))
+print(proc.time() - ptm)
 
 #grps[,evtypes := length(unique(badopt)), by=grp]
 #print(grps[evtypes == 1, sum(badopt)])
 
+
+
+# MATCHING POST-PROCESSING
+# finally, add in groups and shit
 setkey(all.adopts,cp,user_id,day)
 setkey(grps,cp,user_id,day)
-all.adopts2 <- merge(all.adopts,grps,all=TRUE)
+#all.adopts2 <- merge(all.adopts,grps,all=TRUE)
+all.adopts.full <- merge(all.adopts,grps,all=TRUE)
 
-all.adopts2[, hasboth := length(unique(badopt)) - 1, by=grp]
-print(all.adopts2[hasboth == 0, sum(badopt)])
+#all.adopts2[, hasboth := length(unique(badopt)) - 1, by=grp]
+#print(all.adopts2[hasboth == 0, sum(badopt)])
+
+all.adopts.full[, hasboth := length(unique(badopt)) - 1, by=grp]
+print(all.adopts.full[hasboth == 0, sum(badopt)])
+
 
 # diagnostics...
-unique.users <- all.adopts2[hasboth == 1, length(unique(user_id)), by=grp]
+#unique.users <- all.adopts2[hasboth == 1, length(unique(user_id)), by=grp]
+unique.users <- all.adopts.full[hasboth == 1, length(unique(user_id)), by=grp]
 
 # prune out non-informative groups
-all.adopts2 <- all.adopts2[hasboth == 1]
+#all.adopts2 <- all.adopts2[hasboth == 1]
+all.adopts.full <- all.adopts.full[hasboth == 1]
 
+
+
+# ADDITIONAL IMPORTANT METRICS
 # make coarse rank
-all.adopts2[, c('oddball5','oddball10','oddball15','oddball20') := 
+all.adopts.full[, c('oddball5','oddball10','oddball15','oddball20') := 
             list(as.numeric(rank > 5),
                  as.numeric(rank > 10),
                  as.numeric(rank > 15),
                  as.numeric(rank > 20))]
 
 # have to consider alter 0 trade days separately...
-all.adopts2[, ntaltGT0 := as.numeric(ntotal.a14 > 0)]
+all.adopts.full[, ntaltGT0 := as.numeric(ntotal.a14 > 0)]
 
+
+
+# get subsample of initial adoptions
+all.adopts2 <- all.adopts.full[cum.adopt == 0]
 
 
 # ANALYSIS TIME???
@@ -281,16 +395,19 @@ setwd(paste0(OUT.DIR,'tables/'))
 #       custom.coef.names=c('Mean \\$ Returns','Total \\$ Returns','Mean:Total'))
 
 texreg(list(m1,m2,m3, m1a,m2a,m3a),
-       file='adopts-base.tex', label='tab:adopt-base', digits=5, float.pos='htb',
+       file='adopts-base.tex', label='tab:adopt-base',
+       digits=5, float.pos='htb',
        caption='Conditional Logit: Baseline Models of Currency Pair Adoption',
-       sideways=TRUE,
+       sideways=TRUE, dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
        reorder.coef=c(4,1,2,3),
        custom.coef.names=c('Alter Total (14d)','Alter Wins (14d)','Alter Wins:Total',
                            'Alter Trades > 0'))
 
 texreg(list(me1,me2, me1a, me2a),
-       file='adopts-egoret.tex', label='tab:adopt-ego', digits=5, float.pos='htb',
+       file='adopts-egoret.tex', label='tab:adopt-ego',
+       digits=5, float.pos='htb',
        caption='Conditional Logit: Currency Pair Adoption with Ego Returns',
+       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
        reorder.coef=c(8,9,1,3,2,4,5,6,7),
        custom.coef.names=c('Alter Total (14d)','Ego Wins (2d)', 'Alter Wins (14d)',
                            'Alter Total:Ego Wins','Alter Wins:Ego Wins',
@@ -299,8 +416,10 @@ texreg(list(me1,me2, me1a, me2a),
                            'Alter Total:Ego Wins','Alter Total:Alter Wins:Ego Wins'))
 
 texreg(list(mr1,mr2, mr1a, mr2a),
-       file='adopts-rank.tex', label='tab:adopt-rank', digits=5, float.pos='htb',
+       file='adopts-rank.tex', label='tab:adopt-rank', 
+       digits=5, float.pos='htb',
        caption='Conditional Logit: Currency Pair Adoption with Rank Interaction',
+       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
        reorder.coef=c(8,9,1,3,2,4,5,6,7),
        custom.coef.names=c('Alter Total (14d)','Currency Rank','Alter Wins (14d)',
                            'Alter Total:Rank','Alter Wins:Rank',
@@ -309,7 +428,8 @@ texreg(list(mr1,mr2, mr1a, mr2a),
                            'Alter Total:Rank','Alter Total:Alter Wins:Rank'))
 
 texreg(list(mcr1,mcr2, mcr1a, mcr2a),
-       file='adopts-coarserank.tex', label='tab:adopt-coarserank', digits=5, float.pos='htb',
+       file='adopts-coarserank.tex', label='tab:adopt-coarserank', 
+       digits=5, float.pos='htb',
        caption='Conditional Logit: Currency Pair Adoption with Coarse Rank Interaction',
        reorder.coef=c(8,9,1,3,2,4,5,6,7),
        custom.coef.names=c('Alter Total (14d)','Oddball Currency (Rank > 10)','Alter Wins (14d)',
