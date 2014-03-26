@@ -20,7 +20,7 @@ if (grepl('.*stanford\\.edu',Sys.info()[['nodename']])) {
     if (yenre[1,2] == '5') {
         MC.CORES <- 60
     } else if (yenre[1,2] == '6' | yenre[1,2] == '7') {
-        MC.CORES <- 24
+        MC.CORES <- 12
     }
 } else {
     DATA.DIR <- '~/Data/Currensee/'
@@ -212,6 +212,7 @@ c.dt[is.na(winfrac.e10), winfrac.e10 := 0.5]
 # BUILD THE WHOLE BASTARD
 # sample out some currencies
 cp.set <- cps[rank %% 6 == 1, cp]
+setkey(c.dt,user_id,day)
 
 ptm <- proc.time()
 res <- mclapply(cp.set, mc.cores=MC.CORES, mc.preschedule=FALSE,
@@ -229,6 +230,10 @@ res <- mclapply(cp.set, mc.cores=MC.CORES, mc.preschedule=FALSE,
         setkey(adopt.es,user_id,day)
         cp.dt <- merge(c.dt, adopt.es, all.x=TRUE)
         cp.dt <- cp.dt[order(user_id,day)]
+
+        print(ccp)
+        print(object.size(cp.dt),units='auto')
+        gc()
 
         # drop observations after first adoption
         # fuck that
@@ -263,7 +268,9 @@ print(system.time(all.adopts <- rbindlist(res)))
 print(dim(all.adopts))
 print(object.size(all.adopts), units='auto')
 
+rm(res)
 
+gc()
 
 
 
@@ -291,6 +298,8 @@ grps <- poor.cem(all.adopts,
                  bkeys=c('badopt'))
 print(proc.time() - ptm)
 
+gc()
+
 #grps[,evtypes := length(unique(badopt)), by=grp]
 #print(grps[evtypes == 1, sum(badopt)])
 
@@ -303,20 +312,26 @@ setkey(grps,cp,user_id,day)
 #all.adopts2 <- merge(all.adopts,grps,all=TRUE)
 all.adopts.full <- merge(all.adopts,grps,all=TRUE)
 
+rm(all.adopts)
+gc()
+
 #all.adopts2[, hasboth := length(unique(badopt)) - 1, by=grp]
 #print(all.adopts2[hasboth == 0, sum(badopt)])
 
 all.adopts.full[, hasboth := length(unique(badopt)) - 1, by=grp]
+all.adopts.full[, hasboth2 := length(unique(badopt2)) - 1, by=grp]
 print(all.adopts.full[hasboth == 0, sum(badopt)])
+print(all.adopts.full[hasboth2 == 0, sum(badopt2)])
 
 
 # diagnostics...
 #unique.users <- all.adopts2[hasboth == 1, length(unique(user_id)), by=grp]
-unique.users <- all.adopts.full[hasboth == 1, length(unique(user_id)), by=grp]
+unique.users <- all.adopts.full[hasboth2 == 1, length(unique(user_id)), by=grp]
 
 # prune out non-informative groups
 #all.adopts2 <- all.adopts2[hasboth == 1]
-all.adopts.full <- all.adopts.full[hasboth == 1]
+all.adopts.full <- all.adopts.full[hasboth2 == 1]
+gc()
 
 
 
@@ -331,11 +346,25 @@ all.adopts.full[, c('oddball5','oddball10','oddball15','oddball20') :=
 # have to consider alter 0 trade days separately...
 all.adopts.full[, ntaltGT0 := as.numeric(ntotal.a14 > 0)]
 
+# trichotomize alter, self results
+all.adopts.full[, ntri.a14 := as.factor(sign(npos.a14 - nneg.a14))]
+all.adopts.full[ntri.a14 == 0, ntri.a14 := as.factor(as.numeric(ntotal.a14>0))]
+
+# trichotomize with benchmark
+all.adopts.full[, winfrac.e2 := npos.e2 / ntotal.e2]
+all.adopts.full[, ntri.e2 := as.factor(sign(winfrac.e2 - 0.5))]
+all.adopts.full[, ntri.bc.e2 := as.factor(sign(winfrac.e2 - all.winfrac))]
+all.adopts.full[, ntri.be.e2 := as.factor(sign(winfrac.e2 - user.winfrac))]
+all.adopts.full[, ntri.b10.e2 := as.factor(sign(winfrac.e2 - winfrac.e10))]
+all.adopts.full[ntotal.e2 == 0,
+                c('ntri.e2','ntri.bc.e2','ntri.be.e2','ntri.b10.e2') := as.factor(0)]
 
 
 # get subsample of initial adoptions
-all.adopts2 <- all.adopts.full[cum.adopt == 0]
+all.adopts2 <- all.adopts.full[cum.adopt == 0 & hasboth == 1]
 
+saveRDS(all.adopts.full,'Rds/weekly-all-adopts.Rds')
+saveRDS(all.adopts2,'Rds/weekly-short-adopts.Rds')
 
 # ANALYSIS TIME???
 m1 <- clogit(badopt ~ ntotal.a14 + strata(grp), data = all.adopts2)
