@@ -55,6 +55,7 @@ cps[,rank:=.I]
 
 
 # restrict to users in middle quantiles
+uids <- aus[, user_id]
 uids <- aus[Npd_q %in% 2:5 & 
                 med_ob_q %in% 2:5 & 
                 dpnlpd_q %in% 2:5 &

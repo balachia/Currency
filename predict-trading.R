@@ -12,7 +12,8 @@ success.by.currency <- function(c.day,u.alts,u.fpt,alts.fpt,gaps) {
     # 86,400,000 is a day in milliseconds
 
     # restrict to alters as of c.day
-    c.u.alts <- u.alts[senddate/86400000 < c.day, recipientid]
+#    c.u.alts <- u.alts[senddate/86400000 < c.day, recipientid]
+    c.u.alts <- u.alts[senddate/86400000 < c.day, alter_id]
 
     c.u.fpt <- u.fpt
     c.alts.fpt <- alts.fpt[user_id %in% c.u.alts]
@@ -31,7 +32,8 @@ success.by.currency <- function(c.day,u.alts,u.fpt,alts.fpt,gaps) {
                 dpnl_neg=sum(dollarpnl[dollarpnl<0]),
                 ntotal=.N,
                 npos=sum(dollarpnl>0),
-                nneg=sum(dollarpnl<0)
+                nneg=sum(dollarpnl<0),
+                nfr=max(nfr)
             ),by=cp]
         alt.res <- c.alts.fpt[,list(
                 day=c.day,
@@ -43,7 +45,8 @@ success.by.currency <- function(c.day,u.alts,u.fpt,alts.fpt,gaps) {
                 dpnl_neg=sum(dollarpnl[dollarpnl<0]),
                 ntotal=.N,
                 npos=sum(dollarpnl>0),
-                nneg=sum(dollarpnl<0)
+                nneg=sum(dollarpnl<0),
+                nfr=max(nfr)
             ),by=cp]
 
         if (dim(resdt)[1]==0 && 
@@ -51,7 +54,8 @@ success.by.currency <- function(c.day,u.alts,u.fpt,alts.fpt,gaps) {
             dim(alt.res)[1]==0) {
             # lol
         } else {
-            resdt <- rbind(resdt,u.res,alt.res)
+#            resdt <- rbind(resdt,u.res,alt.res)
+            resdt <- rbindlist(list(resdt,u.res,alt.res))
         }
     }
     resdt
@@ -100,15 +104,16 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 }
 
 # run settings
-SAMP.FRAC <- 1.0
-MIN.SAMP.FRAC <- 0.8
+SAMP.FRAC <- 0.2
+MIN.SAMP.FRAC <- 0.0
 #FUNC.NAME <- 'day.stats'
 FUNC.NAME <- 'success.by.currency'
 
 # system specific settings
 hostname <- Sys.info()['nodename']
 if(grepl('yen|barley|corn',hostname)) {
-    setwd('~/2YP/data/')
+#    setwd('~/2YP/data/')
+    setwd('~/Data/Currensee/Rds/')
     par.cores <- detectCores()
 } else {
     setwd('~/Data/Currensee/')
@@ -127,13 +132,13 @@ dbap <- readRDS('dailybrokeraccount.Rds')
 ld <- readRDS('linkdata.Rds')
 
 # drop pandas index
-fpt[,X:=NULL]
-ld[,X:=NULL]
+#fpt[,X:=NULL]
+#ld[,X:=NULL]
 
 # make link data undirected
-ld2 <- copy(ld)
-setnames(ld2, names(ld2)[1:2], names(ld2)[2:1])
-ld <- rbind(ld, ld2, use.names=TRUE)
+#ld2 <- copy(ld)
+#setnames(ld2, names(ld2)[1:2], names(ld2)[2:1])
+#ld <- rbind(ld, ld2, use.names=TRUE)
 
 # get active users and user stats
 users <- fpt[,.N,by=user_id]
@@ -187,6 +192,18 @@ users[,dates_imputed:=0]
 users[is.na(minday) | is.na(maxday),
     c('minday','maxday','dates_imputed') := list(g.min.day,g.max.day,1)]
 
+# build friends by day... (~100 mb)
+res <- mclapply(g.min.day:g.max.day,
+                mc.preschedule=FALSE, mc.cores=par.cores,
+                FUN=function(cday) {
+        ld[(senddate/86400000) <= cday,list(closeday=cday, nfr=.N),by=user_id]
+    })
+ld.by.day <- rbindlist(res)
+
+# merge into fpt
+fpt <- merge(fpt, ld.by.day, by=c('user_id','closeday'), all.x=TRUE)
+fpt[ is.na(nfr), nfr := 0]
+
 # start the reactor
 # free mars
 
@@ -204,6 +221,7 @@ users[is.na(minday) | is.na(maxday),
 # }
 
 gaps <- c(29,15,10:1)
+gaps <- c(2:1)
 resdts <- mclapply(users$user_id,
     mc.preschedule=FALSE, mc.cores=par.cores,
     FUN=function(uid) {
@@ -214,12 +232,14 @@ resdts <- mclapply(users$user_id,
         u.imputed <- users[user_id==uid,dates_imputed]
 
         # get alters
-        u.alts <- ld[senderid == uid]
+#        u.alts <- ld[senderid == uid]
+        u.alts <- ld[user_id == uid]
 
         # get user and friends' transactions
         u.dbap <- dbap[user_id==uid,]
         u.fpt <- fpt[user_id==uid,]
-        alts.fpt <- fpt[user_id %in% u.alts$recipientid]
+#        alts.fpt <- fpt[user_id %in% u.alts$recipientid]
+        alts.fpt <- fpt[user_id %in% u.alts$alter_id]
 
         # loop over days
         if (FUNC.NAME ==  'success.by.currency') {
