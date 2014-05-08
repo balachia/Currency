@@ -14,7 +14,7 @@ Let's make some semblance of order to this project:
 
         I think I did this by hand, but if I didn't, then I have no idea where the R file responsible for this conversion is
 
-        TODO: reconstruct this procedure
+        **TODO**: reconstruct this procedure
 
 2. manually push useable Rds files to cluster  
     list includes:
