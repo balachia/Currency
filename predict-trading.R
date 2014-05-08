@@ -104,7 +104,7 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 }
 
 # run settings
-SAMP.FRAC <- 0.2
+SAMP.FRAC <- 0.1
 MIN.SAMP.FRAC <- 0.0
 #FUNC.NAME <- 'day.stats'
 FUNC.NAME <- 'success.by.currency'
@@ -207,21 +207,9 @@ fpt[ is.na(nfr), nfr := 0]
 # start the reactor
 # free mars
 
-# f <- fifo(tempfile(), open="w+b", blocking=T)
-# if (inherits(mcfork(), "masterProcess")) {
-#     # Child
-#     max.iter <- length(users$user_id)
-#     progress <- 0.0
-#     while (progress <= length(users$user_id) && !isIncomplete(f)) {
-#         msg <- readBin(f, "double")
-#         progress <- progress + as.numeric(msg)
-#         cat(sprintf("Progress: %.2f%%\n", (progress / length(users$user_id)) * 100))
-#     } 
-#     mcexit()
-# }
-
 gaps <- c(29,15,10:1)
 gaps <- c(2:1)
+#resdts <- lapply(users$user_id, function (uid) {
 resdts <- mclapply(users$user_id,
     mc.preschedule=FALSE, mc.cores=par.cores,
     FUN=function(uid) {
@@ -259,11 +247,8 @@ resdts <- mclapply(users$user_id,
             resdt[,c('user_id','imputed') := list(uid,u.imputed)]
         }
 
-        # report and return output
-        # writeBin(1.0,f)
         resdt
     })
-# close(f)
 
 resdt <- rbindlist(resdts)
 
