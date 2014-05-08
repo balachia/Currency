@@ -21,4 +21,9 @@ Let's make some semblance of order to this project:
     - friend link data, symmetrized
 
 3. produce user statistics
-    
+    - predict-trading.R
+        - generate success-by-currency (i.e. how many of your friends did how well in what currency on what day)
+        - generate user day stats (i.e. looks like various to-date statistics by user, such as how much they made, # wins/losses)
+    - prep-active-user-stats.R
+        - creates user history level statistics, e.g. # accts, friends, total amt made/lost
+
