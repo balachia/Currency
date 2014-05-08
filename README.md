@@ -16,7 +16,7 @@ Let's make some semblance of order to this project:
 
 2. manually push useable Rds files to cluster  
     list includes:
-        - forexposition tracker
+- forexposition tracker
         - daily broker account performance
         - friend link data, symmetrized
 
