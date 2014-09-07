@@ -1,8 +1,8 @@
 library(data.table)
 
-rm(list=ls())
-
 setwd('~/Data/Currensee/tables-2014/Rds')
+
+rm(list=ls())
 
 ba <- readRDS('BrokerAccount.Rds')
 ba <- ba[,list(brokerAccount_id=id, user_id, baseCurrency)]
