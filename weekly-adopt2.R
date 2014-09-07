@@ -2,6 +2,7 @@ library(data.table)
 library(texreg)
 library(survival)
 library(brglm)
+library(elrm)
 library(stringr)
 
 
@@ -12,6 +13,7 @@ library(stringr)
 MC.CORES <- 2
 if (grepl('.*stanford\\.edu',Sys.info()[['nodename']])) {
     DATA.DIR <- '/archive/gsb/vashevko/Currensee/'
+    DATA.DIR <- '~/Data/Currensee/'
     OUT.DIR <- '~/2YP/writing/'
     CODE.DIR <- '~/2YP/code/'
     
@@ -36,7 +38,8 @@ setwd(DATA.DIR)
 
 
 #all.adopts.full <- readRDS('Rds/weekly-all-adopts.Rds')
-all.adopts2 <- readRDS('Rds/weekly-short-adopts.Rds')
+#all.adopts2 <- readRDS('Rds/weekly-short-adopts.Rds')
+all.adopts2 <- readRDS('Rds/weekly-short-adopts.old.Rds')
 
 # add in alter community benchmarking...
 all.adopts2[, ntri.bc.a14 := sign((npos.a14 / ntotal.a14) - all.winfrac)]
@@ -62,8 +65,16 @@ all.adopts2[, tgrp := year*12 + month]
 #all.adopts.full.act <- all.adopts.full[user.active == 1]
 all.adopts2.act <- all.adopts2[user.active == 1]
 
+all.adopts2[, elrm1 := 1]
 
 
+
+# ELRM TEST
+print(system.time(bm1e <- elrm(badopt/elrm1 ~ ntaltGT0 + ntotal.a14 + factor(grp),
+                               interest = ~ ntaltGT0 + ntotal.a14, dataset = all.adopts2)))
+print(summary(bm1e))
+print(system.time(bm1b <- brglm(badopt ~ ntaltGT0 + ntotal.a14 + factor(grp), data = all.adopts2)))
+print(summary(bm1b))
 
 # ANALYSIS TIME
 print(system.time(bm1a <- clogit(badopt ~ ntaltGT0 + ntotal.a14 + strata(grp), data = all.adopts2)))

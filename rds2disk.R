@@ -5,9 +5,9 @@ rm(list=ls())
 
 setwd('/archive/gsb/vashevko/Currensee/')
 
-files <- paste0('Rds/success.by.currency-', c('0-0.2', '0.2-0.4',
-                                              '0.4-0.6', '0.6-0.8',
-                                              '0.8-1'), 'samp.Rds')
+cuts <- seq(0,1,0.1)
+cut.names <- paste(cuts[-length(cuts)], cuts[-1], sep='-')
+files <- paste0('Rds/success.by.currency-', cut.names, 'samp.Rds')
 
 ffd <- NULL
 

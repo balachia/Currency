@@ -21,6 +21,7 @@ if (grepl('.*stanford\\.edu',Sys.info()[['nodename']])) {
         MC.CORES <- 60
     } else if (yenre[1,2] == '6' | yenre[1,2] == '7') {
         MC.CORES <- 12
+#        MC.CORES <- 6
     }
 } else {
     DATA.DIR <- '~/Data/Currensee/'
@@ -167,7 +168,7 @@ sbc.e10 <- build.lag(sbc.e1d, 2:9, c('user_id','day'),'.e10')
 sbc.e60 <- build.lag(sbc.e1d, 0:59, c('user_id','day'),'.e60')
 
 # only need e60 to check for user activity
-sbc.e60[, c('ntotal.e60','npos.e60','nneg.e60') := NULL]
+sbc.e60[, c('ntotal.e60','npos.e60','nneg.e60', 'nfr.e60') := NULL]
 sbc.e60[, user.active := 1]
 
 # MAKE TRADE EVENTS, INTER-TRADE TIMES...
@@ -188,8 +189,8 @@ c.dt <- merge(c.dt, sbc.e2, all.x=TRUE)
 c.dt <- merge(c.dt, sbc.e10, all.x=TRUE)
 c.dt <- merge(c.dt, sbc.e60, all.x=TRUE)
 
-c.dt[is.na(ntotal.e2), c('ntotal.e2', 'npos.e2', 'nneg.e2') := 0]
-c.dt[is.na(ntotal.e10), c('ntotal.e10', 'npos.e10', 'nneg.e10') := 0]
+c.dt[is.na(ntotal.e2), c('ntotal.e2', 'npos.e2', 'nneg.e2', 'nfr.e2') := 0]
+c.dt[is.na(ntotal.e10), c('ntotal.e10', 'npos.e10', 'nneg.e10', 'nfr.e10') := 0]
 c.dt[is.na(user.active), c('user.active') := 0]
 
 c.dt[,daysactive := day - minday + 1]
@@ -213,12 +214,15 @@ c.dt[is.na(winfrac.e10), winfrac.e10 := 0.5]
 # BUILD THE WHOLE BASTARD
 # sample out some currencies
 cp.set <- cps[rank %% 6 == 1, cp]
+cp.set <- cps[, cp]
+#cp.set <- cps[rank == 1, cp]
 setkey(c.dt,user_id,day)
 
 ptm <- proc.time()
 res <- mclapply(cp.set, mc.cores=MC.CORES, mc.preschedule=FALSE,
     function (ccp) {
-        print(ccp)
+#        print(ccp)
+        cat(ccp, '::', cps[cp==ccp, rank], '\n')
 
         # pull out currency-only adoption events
 #        adopt.es <- all.adopt.es[cp == ccp]
@@ -234,7 +238,7 @@ res <- mclapply(cp.set, mc.cores=MC.CORES, mc.preschedule=FALSE,
 
         print(ccp)
         print(object.size(cp.dt),units='auto')
-        gc()
+#        print(gc())
 
         # drop observations after first adoption
         # fuck that
@@ -259,21 +263,64 @@ res <- mclapply(cp.set, mc.cores=MC.CORES, mc.preschedule=FALSE,
         # merge in alter behavior
         setkey(cp.dt, user_id, day)
         cp.dt <- merge(cp.dt, sbc.a14[cp == ccp, !'cp', with=FALSE], all.x=TRUE) 
-        cp.dt[is.na(ntotal.a14), c('ntotal.a14', 'npos.a14', 'nneg.a14') := 0]
+        cp.dt[is.na(ntotal.a14), c('ntotal.a14', 'npos.a14', 'nneg.a14', 'nfr.a14') := 0]
 
-        cp.dt
+        # instead of storing in memory, let's write out all this out as ffdf
+        # need to recode characters to factors
+        for(x in names(cp.dt))
+        {
+            if (class(cp.dt[,get(x)]) == 'character')
+                cp.dt[, x := as.factor(get(x)), with=FALSE]
+        }
+#        print(cp.dt)
+#        lapply(cp.dt, function(x) print(class(x)))
+
+        cp.ffd <- as.ffdf(cp.dt)
+        unlink(paste0('./ffdb/cp-adopts/',ccp,'/'), recursive=TRUE)
+        save.ffdf(cp.ffd, dir=paste0('./ffdb/cp-adopts/',ccp,'/'), overwrite=TRUE)
+        rm(cp.dt)
+        close(cp.ffd)
+
+        gc()
+
+#        cp.dt
+        0
     })
 print(proc.time() - ptm)
 
-print(system.time(all.adopts <- rbindlist(res)))
-print(dim(all.adopts))
-print(object.size(all.adopts), units='auto')
+unlink('./ffdb/all-adopts/', recursive=TRUE)
+ad.ffd <- NULL
+for (ccp in cp.set) {
+    print(ccp)
+    ad.ffd0 <- load.ffdf(paste0('./ffdb/cp-adopts/',ccp,'/'))$cp.ffd
+#    ad.ffd <- ffdfappend(ad.ffd, ad.ffd0)
+    if (is.null(ad.ffd)) {
+        ad.ffd <- clone.ffdf(ad.ffd0)
+#        save.ffdf(ad.ffd, dir='./ffdb/all-adopts/', clone=TRUE, overwrite=TRUE)
+    } else {
+        ad.ffd <- ffdfappend(ad.ffd, ad.ffd0)
+    }
+    save.ffdf(ad.ffd, dir='./ffdb/all-adopts/', overwrite=TRUE)
+    close(ad.ffd0)
+}
 
-rm(res)
+ad.ffd$id <- ff(1:nrow(ad.ffd))
+#within(ad.ffd, {id <- ff(1:nrow(ad.ffd))})
+save.ffdf(ad.ffd, dir='./ffdb/all-adopts/', overwrite=TRUE)
+
+close(ad.ffd)
+
+#save.ffdf(ad.ffd, dir='./ffdb/all-adopts/', clone=TRUE, overwrite=TRUE)
+
+#print(system.time(all.adopts <- rbindlist(res)))
+#print(dim(all.adopts))
+#print(object.size(all.adopts), units='auto')
+
+#rm(res)
 
 gc()
 
-
+ad.ffd <- load.ffdf('./ffdb/all-adopts/')$ad.ffd
 
 
 # MATCHING
@@ -289,11 +336,21 @@ q.names <- c('totaldpnl','posdpnl','openbalance','ntotal.e10','daysactive')
 #q.names <- c('totaldpnl','posdpnl','openbalance','ntotal.e10','daysactive','rank')
 
 s.names <- c('ugrp')
+s.names <- c('user_id')
 #s.names <- c('ugrp','cp')
 
+all.adopts <- as.data.table(as.data.frame(
+    ad.ffd[unique(c('id','badopt', q.names, s.names))]
+                                          ))
+
 ptm <- proc.time()
+#grps <- poor.cem(all.adopts,
+#                 keys=c('user_id','day','cp'), 
+#                 snames=s.names,
+#                 qnames=q.names,
+#                 bkeys=c('badopt'))
 grps <- poor.cem(all.adopts,
-                 keys=c('user_id','day','cp'), 
+                 keys=c('id'),
                  snames=s.names,
                  qnames=q.names,
                  bkeys=c('badopt'))
@@ -308,6 +365,24 @@ gc()
 
 # MATCHING POST-PROCESSING
 # finally, add in groups and shit
+grp.ffd <- as.ffdf(grps)
+idx.x <- ffdforder(ad.ffd['id'])
+idx.y <- ffdforder(grp.ffd['id'])
+
+ad.ffd$grp <- ff(0, nrow(ad.ffd), vmode='integer')
+ad.ffd$grpN <- ff(0, nrow(ad.ffd), vmode='integer')
+
+#ad.ffd$grp[idx.x] <- grp.ffd$grp[idx.y]
+ad.ffd[idx.x, 'grp'] <- grp.ffd[idx.y, 'grp']
+ad.ffd[idx.x, 'grpN'] <- grp.ffd[idx.y, 'grpN']
+
+save.ffdf(ad.ffd, dir='./ffdb/all-adopts/', overwrite=TRUE)
+close(ad.ffd)
+ad.ffd <- load.ffdf('./ffdb/all-adopts/')$ad.ffd
+
+rm(grps)
+gc()
+
 setkey(all.adopts,cp,user_id,day)
 setkey(grps,cp,user_id,day)
 #all.adopts2 <- merge(all.adopts,grps,all=TRUE)

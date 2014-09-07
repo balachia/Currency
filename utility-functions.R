@@ -77,10 +77,11 @@ build.lag <- function(dt, lag, collapseby, affix = '') {
         }))
     out <- out[, list(ntotal = sum(ntotal),
                       npos = sum(npos),
-                      nneg = sum(nneg)
+                      nneg = sum(nneg),
+                      nfr = max(nfr)
                       ), by=collapseby]
-    setnames(out, c('ntotal','npos','nneg'),
-             paste0(c('ntotal','npos','nneg'), affix))
+    setnames(out, c('ntotal','npos','nneg','nfr'),
+             paste0(c('ntotal','npos','nneg','nfr'), affix))
 
     out
 }

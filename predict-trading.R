@@ -104,8 +104,8 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 }
 
 # run settings
-SAMP.FRAC <- 0.2
-MIN.SAMP.FRAC <- 0.1
+SAMP.FRAC <- 0.9
+MIN.SAMP.FRAC <- 0.8
 #FUNC.NAME <- 'day.stats'
 FUNC.NAME <- 'success.by.currency'
 
@@ -207,6 +207,8 @@ fpt[ is.na(nfr), nfr := 0]
 # start the reactor
 # free mars
 
+ptm <- proc.time()
+
 gaps <- c(29,15,10:1)
 gaps <- c(2:1)
 #resdts <- lapply(users$user_id, function (uid) {
@@ -214,6 +216,8 @@ resdts <- mclapply(users$user_id,
     mc.preschedule=FALSE, mc.cores=par.cores,
     FUN=function(uid) {
         cat(uid, "(", ec(uid), ")\n")
+
+        iter.ptm <- proc.time()
         
         u.minday <- users[user_id==uid,minday]
         u.maxday <- users[user_id==uid,maxday]
@@ -241,7 +245,9 @@ resdts <- mclapply(users$user_id,
             c.func)
 
         resdt <- rbindlist(resdts)
-        cat('dim: ',dim(resdt),'\n')
+
+        out.time <- (proc.time() - iter.ptm)[3] / (dim(resdt)[1]/100)
+        cat('dim: ',dim(resdt),'\n', out.time, '/100,', (proc.time() - ptm)[3], 'total\n')
 
         if (dim(resdt)[1] > 0) {
             resdt[,c('user_id','imputed') := list(uid,u.imputed)]
@@ -253,3 +259,4 @@ resdts <- mclapply(users$user_id,
 resdt <- rbindlist(resdts)
 
 saveRDS(resdt,paste0(FUNC.NAME,'-',MIN.SAMP.FRAC,'-',SAMP.FRAC,'samp.Rds'))
+cat(paste0(FUNC.NAME,'-',MIN.SAMP.FRAC,'-',SAMP.FRAC,'samp.Rds'), '\n')
