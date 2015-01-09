@@ -20,7 +20,7 @@ if (grepl('.*stanford\\.edu',Sys.info()[['nodename']])) {
     if (yenre[1,2] == '5') {
         MC.CORES <- 60
     } else if (yenre[1,2] == '6' | yenre[1,2] == '7') {
-        MC.CORES <- 12
+        MC.CORES <- 18
 #        MC.CORES <- 6
     }
 } else {
@@ -87,6 +87,7 @@ c.dt <- merge(c.dt, aus[, !aus.bad.cols, with=FALSE], all.x=TRUE)
 
 # MAKE ADOPTION EVENTS
 # pull out all adoption events
+# magic number: jan 1, 2008?
 g.min.day <- 1199145600000 / 86400000
 all.adopt.es <- fpt[,list(adopt = min(openday)), by=list(user_id,cp)]
 lagged.opens <- fpt[,list(openday),by=list(user_id,cp)]
@@ -117,7 +118,7 @@ flex.adopts[,l.openday := NULL]
 setnames(flex.adopts,c('openday','lapse'),c('day','adlapse'))
 
 
-# throw out each user's first day of currency
+# throw out each user's first day of currency use
 # all.adopt.es <- all.adopt.es[order(user_id,adopt)]
 all.adopt.es[, valid := adopt > min(adopt), by=user_id]
 all.adopt.es <- all.adopt.es[(valid)]
@@ -125,6 +126,8 @@ all.adopt.es <- all.adopt.es[adopt > g.min.day]
 all.adopt.es[,valid := NULL]
 
 # how do i do this in the flex adopt mode....
+# throw out each user's first day of currency use
+# and all subsequent uses of that currency
 flex.adopts[, first.curr := day == min(day), by=user_id]
 flex.adopts[, first.curr := any(first.curr), by=list(user_id,cp)]
 flex.adopts <- flex.adopts[(!first.curr)]
@@ -132,7 +135,7 @@ flex.adopts[, first.curr := NULL]
 
 
 
-# USER INACTIVITY
+# USER INACTIVITY ANALYSIS
 # how should we look at periods of inactivity?
 inactivity <- fpt[order(openday), list(openday), by=user_id]
 inactivity <- inactivity[openday > g.min.day]
@@ -213,7 +216,7 @@ c.dt[is.na(winfrac.e10), winfrac.e10 := 0.5]
 
 # BUILD THE WHOLE BASTARD
 # sample out some currencies
-cp.set <- cps[rank %% 6 == 1, cp]
+#cp.set <- cps[rank %% 6 == 1, cp]
 cp.set <- cps[, cp]
 #cp.set <- cps[rank == 1, cp]
 setkey(c.dt,user_id,day)
@@ -221,11 +224,9 @@ setkey(c.dt,user_id,day)
 ptm <- proc.time()
 res <- mclapply(cp.set, mc.cores=MC.CORES, mc.preschedule=FALSE,
     function (ccp) {
-#        print(ccp)
         cat(ccp, '::', cps[cp==ccp, rank], '\n')
 
         # pull out currency-only adoption events
-#        adopt.es <- all.adopt.es[cp == ccp]
         adopt.es <- flex.adopts[cp == ccp]
 
         # get currency pair rank
@@ -236,14 +237,14 @@ res <- mclapply(cp.set, mc.cores=MC.CORES, mc.preschedule=FALSE,
         cp.dt <- merge(c.dt, adopt.es, all.x=TRUE)
         cp.dt <- cp.dt[order(user_id,day)]
 
-        print(ccp)
-        print(object.size(cp.dt),units='auto')
-#        print(gc())
+        cat(ccp,'::',cp.rank,'::',format(object.size(cp.dt),units='auto'),'\n')
+        #print(ccp)
+        #print(object.size(cp.dt),units='auto')
 
-        # drop observations after first adoption
-        # fuck that
-
-        # instead mark days since last adoption...
+        # mark days since last adoption...
+        # badopt2: was a currency used that day?
+        # badopt: was a currency used for the first time that day?
+        # cum.adopt: how many adoptions have there been prior to this day?
         cp.dt[, badopt2 := as.numeric(!is.na(adlapse))]
         cp.dt[, cum.adopt := cumsum(badopt2) - badopt2, by=user_id]
         cp.dt[cum.adopt == 0, uselapse := Inf]
@@ -260,7 +261,7 @@ res <- mclapply(cp.set, mc.cores=MC.CORES, mc.preschedule=FALSE,
         cp.dt[,rank := cp.rank]
         cp.dt[, adopt := NULL]
 
-        # merge in alter behavior
+        # merge in alter behavior, restricting to alter use of focal currency
         setkey(cp.dt, user_id, day)
         cp.dt <- merge(cp.dt, sbc.a14[cp == ccp, !'cp', with=FALSE], all.x=TRUE) 
         cp.dt[is.na(ntotal.a14), c('ntotal.a14', 'npos.a14', 'nneg.a14', 'nfr.a14') := 0]
@@ -275,11 +276,13 @@ res <- mclapply(cp.set, mc.cores=MC.CORES, mc.preschedule=FALSE,
 #        print(cp.dt)
 #        lapply(cp.dt, function(x) print(class(x)))
 
+        cat(ccp,'::',cp.rank,'::','writing','\n')
         cp.ffd <- as.ffdf(cp.dt)
         unlink(paste0('./ffdb/cp-adopts/',ccp,'/'), recursive=TRUE)
         save.ffdf(cp.ffd, dir=paste0('./ffdb/cp-adopts/',ccp,'/'), overwrite=TRUE)
         rm(cp.dt)
         close(cp.ffd)
+        cat(ccp,'::',cp.rank,'::','done','\n')
 
         gc()
 
@@ -288,6 +291,7 @@ res <- mclapply(cp.set, mc.cores=MC.CORES, mc.preschedule=FALSE,
     })
 print(proc.time() - ptm)
 
+ptm <- proc.time()
 unlink('./ffdb/all-adopts/', recursive=TRUE)
 ad.ffd <- NULL
 for (ccp in cp.set) {
@@ -301,6 +305,7 @@ for (ccp in cp.set) {
     save.ffdf(ad.ffd, dir='./ffdb/all-adopts/', overwrite=TRUE)
     close(ad.ffd0)
 }
+print(proc.time() - ptm)
 
 ad.ffd$id <- ff(1:nrow(ad.ffd))
 
@@ -309,34 +314,34 @@ close(ad.ffd)
 ad.ffd <- load.ffdf('./ffdb/all-adopts/')$ad.ffd
 
 gc()
+print(proc.time() - ptm)
 
 
 
-# MATCHING
+# MATCHING/USER FIXED EFFECTS
 # now, let's try to throw down a matching...
 
-q.names <- c('totaldpnl','openbalance')
-q.names <- c('totaldpnl','posdpnl')
-q.names <- c('totaldpnl','posdpnl','openbalance')
+#q.names <- c('totaldpnl','openbalance')
+#q.names <- c('totaldpnl','posdpnl')
+#q.names <- c('totaldpnl','posdpnl','openbalance')
 
-q.names <- c('totaldpnl','posdpnl','openbalance','ntotal.e10')
+#q.names <- c('totaldpnl','posdpnl','openbalance','ntotal.e10')
 #q.names <- c('totaldpnl','posdpnl','openbalance','ntotal.e10','npos.e10')
 q.names <- c('totaldpnl','posdpnl','openbalance','ntotal.e10','daysactive')
 #q.names <- c('totaldpnl','posdpnl','openbalance','ntotal.e10','daysactive','rank')
 
-s.names <- c('ugrp')
+#s.names <- c('ugrp')
 s.names <- c('user_id')
 #s.names <- c('ugrp','cp')
 
-all.adopts <- as.data.table(as.data.frame(
-    ad.ffd[unique(c('id','badopt', q.names, s.names))]
-                                          ))
+#all.adopts <- as.data.table(as.data.frame(
+    #ad.ffd[unique(c('id','badopt', q.names, s.names))]
+                                          #))
 
-ptm <- proc.time()
 #q.names <- c('totaldpnl','posdpnl','openbalance','ntotal.e10','daysactive','rank')
 
-s.names <- c('ugrp')
-s.names <- c('user_id')
+#s.names <- c('ugrp')
+#s.names <- c('user_id')
 #s.names <- c('ugrp','cp')
 
 all.adopts <- as.data.table(as.data.frame(
@@ -357,9 +362,6 @@ grps <- poor.cem(all.adopts,
 print(proc.time() - ptm)
 
 gc()
-
-#grps[,evtypes := length(unique(badopt)), by=grp]
-#print(grps[evtypes == 1, sum(badopt)])
 
 
 
@@ -382,6 +384,87 @@ ad.ffd <- load.ffdf('./ffdb/all-adopts/')$ad.ffd
 
 rm(grps)
 gc()
+
+
+# FIND VALID GROUPS
+# where valid = groups that have both failures and events
+
+ptm <- proc.time()
+open(ad.ffd)
+max.grp <- nrow(ad.ffd)
+gap <- 1e6
+grp.seq <- seq(1, max.grp, gap)
+res <- mclapply(grp.seq,
+                mc.cores=MC.CORES, mc.preschedule=FALSE,
+                function (x) {
+                    cat(x / gap,'/',max.grp / gap,'\n')
+                    print(system.time(
+                                      dt <- as.data.table(as.data.frame(ad.ffd[ff(x:(x+gap-1)),]))
+                                      ))
+                    dt[, list(has0 = 0 %in% badopt,
+                              has1 = 1 %in% badopt,
+                              has0.2 = 0 %in% badopt2,
+                              has1.2 = 1 %in% badopt2), by=grp]
+                })
+res <- rbindlist(res)
+hasboth.dt <- res[, list(hasboth = any(has0) & any(has1),
+                         hasboth2 = any(has0.2) & any(has1.2)), by=grp]
+print(proc.time() - ptm)
+
+# group selector
+set.seed(1)
+hasboth.dt[, rand_selector := runif(.N)]
+hasboth.dt <- hasboth.dt[order(rand_selector)]
+hasboth.dt[(!hasboth), adopt_grp_select := Inf]
+hasboth.dt[(hasboth), adopt_grp_select := 1:.N]
+hasboth.dt[(!hasboth2), adopt2_grp_select := Inf]
+hasboth.dt[(hasboth2), adopt2_grp_select := 1:.N]
+
+grps <- data.table(grp=ad.ffd[,'grp'])
+grps <- merge(grps, hasboth.dt, by='grp')
+
+options(fftempdir = './tmp')
+
+# add in the group types, randomization
+ad.ffd$hasboth <- ff(grps[,hasboth])
+ad.ffd$hasboth2 <- ff(grps[,hasboth2])
+ad.ffd$rand_selector <- ff(grps[,rand_selector])
+ad.ffd$adopt_grp_select <- ff(grps[,adopt_grp_select])
+ad.ffd$adopt2_grp_select <- ff(grps[,adopt2_grp_select])
+
+save.ffdf(ad.ffd, dir='./ffdb/all-adopts/', overwrite=TRUE)
+close(ad.ffd)
+ad.ffd <- load.ffdf('./ffdb/all-adopts/')$ad.ffd
+
+
+
+# ADDITIONAL METRICS
+# oddball rank dummies
+ad.ffd$oddball5 <- ad.ffd$rank > 5
+ad.ffd$oddball10 <- ad.ffd$rank > 10
+ad.ffd$oddball15 <- ad.ffd$rank > 15
+ad.ffd$oddball20 <- ad.ffd$rank > 20
+
+
+# alter outcome dummies
+ad.ffd$ntgt0.a14 <- ad.ffd$ntotal.a14 > 0
+ad.ffd$ndpos.a14 <- ad.ffd$npos.a14 > ad.ffd$nneg.a14
+ad.ffd$ndpos.bc.a14 <- (ad.ffd$npos.a14 / ad.ffd$ntotal.a14) - ad.ffd$all.winfrac > 0
+
+
+save.ffdf(ad.ffd, dir='./ffdb/all-adopts/', overwrite=TRUE)
+close(ad.ffd)
+ad.ffd <- load.ffdf('./ffdb/all-adopts/')$ad.ffd
+
+
+
+# hard bork
+stopifnot(FALSE)
+
+
+
+
+
 
 #setkey(all.adopts,cp,user_id,day)
 #setkey(grps,cp,user_id,day)
@@ -453,108 +536,3 @@ all.adopts2 <- all.adopts.full[cum.adopt == 0 & hasboth == 1]
 saveRDS(all.adopts.full,'Rds/weekly-all-adopts.Rds')
 saveRDS(all.adopts2,'Rds/weekly-short-adopts.Rds')
 
-# hard bork
-stopifnot(FALSE)
-
-
-
-# ANALYSIS TIME???
-ad.ffd <- load.ffdf('./ffdb/all-adopts/')$ad.ffd
-
-# all.adopts.full[, c('oddball5','oddball10','oddball15','oddball20') := 
-#             list(as.numeric(rank > 5),
-#                  as.numeric(rank > 10),
-#                  as.numeric(rank > 15),
-#                  as.numeric(rank > 20))]
-
-# have to consider alter 0 trade days separately...
-# all.adopts.full[, ntaltGT0 := as.numeric(ntotal.a14 > 0)]
-
-# trichotomize alter, self results
-# all.adopts.full[, ntri.a14 := as.factor(sign(npos.a14 - nneg.a14))]
-# all.adopts.full[ntri.a14 == 0, ntri.a14 := as.factor(as.numeric(ntotal.a14>0))]
-
-# trichotomize with benchmark
-# all.adopts.full[, winfrac.e2 := npos.e2 / ntotal.e2]
-# all.adopts.full[, ntri.e2 := as.factor(sign(winfrac.e2 - 0.5))]
-# all.adopts.full[, ntri.bc.e2 := as.factor(sign(winfrac.e2 - all.winfrac))]
-# all.adopts.full[, ntri.be.e2 := as.factor(sign(winfrac.e2 - user.winfrac))]
-# all.adopts.full[, ntri.b10.e2 := as.factor(sign(winfrac.e2 - winfrac.e10))]
-# all.adopts.full[ntotal.e2 == 0,
-#                 c('ntri.e2','ntri.bc.e2','ntri.be.e2','ntri.b10.e2') := as.factor(0)]
-
-
-# get subsample of initial adoptions
-# all.adopts2 <- all.adopts.full[cum.adopt == 0 & hasboth == 1]
-# 
-# saveRDS(all.adopts.full,'Rds/weekly-all-adopts.Rds')
-# saveRDS(all.adopts2,'Rds/weekly-short-adopts.Rds')
-
-# ANALYSIS TIME???
-# m1 <- clogit(badopt ~ ntotal.a14 + strata(grp), data = all.adopts2)
-# print(summary(m1))
-# m2 <- clogit(badopt ~ ntotal.a14 + npos.a14 + strata(grp), data = all.adopts2)
-# print(summary(m2))
-# m3 <- clogit(badopt ~ ntotal.a14*npos.a14 + strata(grp), data = all.adopts2)
-# print(summary(m3))
-# 
-# me1 <- clogit(badopt ~ ntotal.a14*npos.e2 + npos.a14*npos.e2 + strata(grp), data = all.adopts2)
-# print(summary(me1))
-# me2 <- clogit(badopt ~ ntotal.a14*npos.a14*npos.e2 + strata(grp), data = all.adopts2)
-# print(summary(me2))
-# 
-# mr1 <- clogit(badopt ~ ntotal.a14*rank + npos.a14*rank + strata(grp), data = all.adopts2)
-# print(summary(mr1))
-# mr2 <- clogit(badopt ~ ntotal.a14*npos.a14*rank + strata(grp), data = all.adopts2)
-# print(summary(mr2))
-# 
-# mcr1 <- clogit(badopt ~ ntotal.a14*oddball10 + npos.a14*oddball10 + strata(grp), data = all.adopts2)
-# print(summary(mcr1))
-# mcr2 <- clogit(badopt ~ ntotal.a14*npos.a14*oddball10 + strata(grp), data = all.adopts2)
-# print(summary(mcr2))
-# 
-# 
-# # consider alter 0-returns separately...
-# m1a <- clogit(badopt ~ ntaltGT0 + ntotal.a14 + strata(grp), data = all.adopts2)
-# print(summary(m1a))
-# m2a <- clogit(badopt ~ ntaltGT0 + ntotal.a14 + npos.a14 + strata(grp), data = all.adopts2)
-# print(summary(m2a))
-# m3a <- clogit(badopt ~ ntaltGT0 + ntotal.a14*npos.a14 + strata(grp), data = all.adopts2)
-# print(summary(m3a))
-# 
-# me1a <- clogit(badopt ~ ntaltGT0*npos.e2 + ntotal.a14*npos.e2 + npos.a14*npos.e2 + strata(grp), data = all.adopts2)
-# print(summary(me1a))
-# me2a <- clogit(badopt ~ ntaltGT0*npos.e2 + ntotal.a14*npos.a14*npos.e2 + strata(grp), data = all.adopts2)
-# print(summary(me2a))
-# 
-# mr1a <- clogit(badopt ~ ntaltGT0*rank + ntotal.a14*rank + npos.a14*rank + strata(grp), data = all.adopts2)
-# print(summary(mr1a))
-# mr2a <- clogit(badopt ~ ntaltGT0*rank + ntotal.a14*npos.a14*rank + strata(grp), data = all.adopts2)
-# print(summary(mr2a))
-# 
-# mcr1a <- clogit(badopt ~ ntaltGT0*oddball10 + ntotal.a14*oddball10 + npos.a14*oddball10 + strata(grp), data = all.adopts2)
-# print(summary(mcr1a))
-# mcr2a <- clogit(badopt ~ ntaltGT0*oddball10 + ntotal.a14*npos.a14*oddball10 + strata(grp), data = all.adopts2)
-# print(summary(mcr2a))
-# 
-# 
-# 
-       caption='Conditional Logit: Currency Pair Adoption with Rank Interaction',
-       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
-       reorder.coef=c(8,9,1,3,2,4,5,6,7),
-       custom.coef.names=c('Alter Total (14d)','Currency Rank','Alter Wins (14d)',
-                           'Alter Total:Rank','Alter Wins:Rank',
-                           'Alter Total:Wins','Alter Wins:Rank','Alter Total:Alter Wins:Rank',
-                           'Alter Trades > 0','Alter Trades > 0:Rank',
-                           'Alter Total:Rank','Alter Total:Alter Wins:Rank'))
-
-texreg(list(mcr1,mcr2, mcr1a, mcr2a),
-       file='adopts-coarserank.tex', label='tab:adopt-coarserank', 
-       digits=5, float.pos='htb',
-       caption='Conditional Logit: Currency Pair Adoption with Coarse Rank Interaction',
-       reorder.coef=c(8,9,1,3,2,4,5,6,7),
-       custom.coef.names=c('Alter Total (14d)','Oddball Currency (Rank > 10)','Alter Wins (14d)',
-                           'Alter Total:Oddball','Alter Wins:Oddball',
-                           'Alter Total:Wins','Alter Wins:Oddball','Alter Total:Alter Wins:Oddball',
-                           'Alter Trades > 0','Alter Trades > 0:Oddball',
-                           'Alter Total:Oddball','Alter Total:Alter Wins:Oddball'))
