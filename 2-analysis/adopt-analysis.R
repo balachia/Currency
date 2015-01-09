@@ -36,7 +36,24 @@ source(paste0(CODE.DIR,'utility-functions.R'))
 
 setwd(DATA.DIR)
 
+
+# reload session
+if(FALSE) {
+    load('adopt-analysis.Rdata')
+}
+
+
 ad.ffd <- load.ffdf('./ffdb/all-adopts/')$ad.ffd
+
+good.cols <- c('user_id','day','cp',
+               'ugrp','ugrpN','grp','grpN',
+               'ntotal.e2','npos.e2','nneg.e2','nfr.e2',
+               'ntotal.e10','npos.e10','nneg.e10','nfr.e10',
+               'ntotal.a14','npos.a14','nneg.a14','nfr.a14',
+               'daysactive','all.winfrac','user.winfrac','winfrac.e10',
+               'cum.adopt','badopt','rank',
+               'oddball5','oddball10','oddball20'
+               )
 
 print(system.time(
         all.adopts <- as.data.table(as.data.frame(ad.ffd[ffwhich(ad.ffd, adopt_grp_select <= 5000),]))
@@ -45,10 +62,17 @@ print(system.time(
 # drop observations after adoption
 all.adopts <- all.adopts[cum.adopt==0]
 
+print(system.time(
+        all.adopts <- as.data.table(as.data.frame(ad.ffd[ffwhich(ad.ffd, adopt_grp_select <= 20000 & cum.adopt == 0),]))
+    ))
+
 all.adopts[, oddball25 := rank > 25]
 all.adopts[, oddball30 := rank > 30]
 all.adopts[, oddball40 := rank > 40]
 all.adopts[, oddball50 := rank > 50]
+
+# save data file
+save(all.adopts,file='Rdata/adopt-analysis-data.Rdata',compress=FALSE)
 
 #all.adopts.full <- readRDS('Rds/weekly-all-adopts.Rds')
 #all.adopts2 <- readRDS('Rds/weekly-short-adopts.Rds')
@@ -97,6 +121,9 @@ print(summary(basem2))
 print(system.time(basem3 <- clogit(badopt ~ ntgt0.a14 + ndpos.bc.a14 + strata(grp), data = all.adopts)))
 print(summary(basem3))
 
+save(basem1,basem2,basem3,
+     file='Rdata/adopt-analysis-basem.Rdata',compress=FALSE)
+
 
 ################################################################################
 # CNN EFFECT
@@ -129,6 +156,11 @@ print(summary(basem2.pf))
 print(system.time(basem3.pf <- clogit(badopt ~ ntgt0.a14 + ndpos.bc.a14 + poly(nfr.a14, degree=2) + strata(grp), data = all.adopts)))
 print(summary(basem3.pf))
 
+save(basem1.f,basem2.f,basem3.f,
+     basem1.lf,basem2.lf,basem3.lf,
+     basem1.pf,basem2.pf,basem3.pf,
+     file='Rdata/adopt-analysis-cnn.Rdata',compress=FALSE)
+
 
 ################################################################################
 # RANK SPECIFICATIONS
@@ -159,6 +191,11 @@ print(summary(basem4.ns1))
 print(system.time(basem4.ns2 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*ns(rank, knots=c(5,25)) + strata(grp), data = all.adopts)))
 print(summary(basem4.ns2))
 
+save(basem4,basem4.l,
+     basem4.bs0,basem4.bs1,basem4.bs2,
+     basem4.ns0,basem4.ns1,basem4.ns2,
+     file='Rdata/adopt-analysis-rank.Rdata',compress=FALSE)
+
 
 ################################################################################
 # ODDBALLS
@@ -171,6 +208,9 @@ print(summary(basem5.10))
 
 print(system.time(basem5.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(grp), data = all.adopts)))
 print(summary(basem5.20))
+
+save(basem5.5,basem5.10,basem5.20,
+     file='Rdata/adopt-analysis-oddball',compress=FALSE)
 
 
 ################################################################################
@@ -204,16 +244,43 @@ print(summary(basem5.10f))
 print(system.time(basem5.20pf <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + poly(nfr.a14, degree=2))*oddball20 + strata(grp), data = all.adopts)))
 print(summary(basem5.20f))
 
+save(basem5.5f,basem5.10f,basem5.20f,
+     basem5.5lf,basem5.10lf,basem5.20lf,
+     basem5.5pf,basem5.10pf,basem5.20pf,
+     file='Rdata/adopt-analysis-oddball-cnn.Rdata',compress=FALSE)
+
 
 ################################################################################
 # DOUBLE ODDBALLS
 print(system.time(basem6 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*(oddball5 + oddball25) + strata(grp), data = all.adopts)))
 print(summary(basem6))
 
+save(basem6,
+     file='Rdata/adopt-analysis-double-oddball.Rdata',compress=FALSE)
+
+
+################################################################################
+# CURRENCY-PAIR FEs
+
+print(system.time(basem7 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + strata(grp,cp), data = all.adopts)))
+print(summary(basem7))
+
+print(system.time(basem7.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*log(rank) + strata(grp,cp), data = all.adopts)))
+print(summary(basem7.l))
+
+print(system.time(basem7.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball5 + strata(grp,cp), data = all.adopts)))
+print(summary(basem7.5))
+
+print(system.time(basem7.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball10 + strata(grp,cp), data = all.adopts)))
+print(summary(basem7.10))
+
+print(system.time(basem7.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(grp,cp), data = all.adopts)))
+print(summary(basem7.20))
+
 
 ################################################################################
 # SAVE MODELS
-save.image(file='adopt-analysis.Rdata')
+save.image(file='adopt-analysis.Rdata', compress=FALSE)
 
 # hard bork
 stopifnot(FALSE)
