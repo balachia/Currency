@@ -11,7 +11,7 @@ library(texreg)
 # MATCH FILE SETTINGS TO HOST MACHINE
 MC.CORES <- 2
 if (grepl('.*stanford\\.edu',Sys.info()[['nodename']])) {
-    DATA.DIR <- '/archive/gsb/vashevko/Currensee/'
+    DATA.DIR <- '/archive/gsb/vashevko/forex/'
     OUT.DIR <- '~/2YP/writing/'
     CODE.DIR <- '~/2YP/code/'
     
@@ -24,7 +24,7 @@ if (grepl('.*stanford\\.edu',Sys.info()[['nodename']])) {
 #        MC.CORES <- 6
     }
 } else {
-    DATA.DIR <- '~/Data/Currensee/'
+    DATA.DIR <- '~/Data/forex/'
     OUT.DIR <- '~/Dropbox/Currensee Project/writing/'
     CODE.DIR <- '~/Dropbox/Currensee Project/code/'
 }
@@ -452,6 +452,11 @@ all.adopts2 <- all.adopts.full[cum.adopt == 0 & hasboth == 1]
 
 saveRDS(all.adopts.full,'Rds/weekly-all-adopts.Rds')
 saveRDS(all.adopts2,'Rds/weekly-short-adopts.Rds')
+
+# hard bork
+stopifnot(FALSE)
+
+
 
 # ANALYSIS TIME???
 ad.ffd <- load.ffdf('./ffdb/all-adopts/')$ad.ffd
