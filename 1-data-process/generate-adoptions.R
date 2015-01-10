@@ -361,6 +361,7 @@ grps <- poor.cem(all.adopts,
                  bkeys=c('badopt'))
 print(proc.time() - ptm)
 
+rm(all.adopts)
 gc()
 
 
@@ -431,6 +432,9 @@ ad.ffd$hasboth2 <- ff(grps[,hasboth2])
 ad.ffd$rand_selector <- ff(grps[,rand_selector])
 ad.ffd$adopt_grp_select <- ff(grps[,adopt_grp_select])
 ad.ffd$adopt2_grp_select <- ff(grps[,adopt2_grp_select])
+
+rm(grps)
+gc()
 
 save.ffdf(ad.ffd, dir='./ffdb/all-adopts/', overwrite=TRUE)
 close(ad.ffd)
