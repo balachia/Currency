@@ -449,7 +449,8 @@ ad.ffd$oddball20 <- ad.ffd$rank > 20
 # alter outcome dummies
 ad.ffd$ntgt0.a14 <- ad.ffd$ntotal.a14 > 0
 ad.ffd$ndpos.a14 <- ad.ffd$npos.a14 > ad.ffd$nneg.a14
-ad.ffd$ndpos.bc.a14 <- (ad.ffd$npos.a14 / ad.ffd$ntotal.a14) - ad.ffd$all.winfrac > 0
+ad.ffd$ndpos.bc.a14 <- (ad.ffd$ntotal.a14 > 0) & 
+    (((ad.ffd$npos.a14 / ad.ffd$ntotal.a14) - ad.ffd$all.winfrac) > 0)
 
 
 save.ffdf(ad.ffd, dir='./ffdb/all-adopts/', overwrite=TRUE)
