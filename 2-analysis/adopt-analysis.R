@@ -8,13 +8,13 @@ library(stringr)
 
 
 
-#rm(list=ls())
+rm(list=ls())
 
 # MATCH FILE SETTINGS TO HOST MACHINE
 MC.CORES <- 2
 if (grepl('.*stanford\\.edu',Sys.info()[['nodename']])) {
-    DATA.DIR <- '/archive/gsb/vashevko/Currensee/'
-    DATA.DIR <- '~/Data/Currensee/'
+    DATA.DIR <- '/archive/gsb/vashevko/forex/'
+    DATA.DIR <- '~/Data/forex/'
     OUT.DIR <- '~/2YP/writing/'
     CODE.DIR <- '~/2YP/code/'
     
@@ -26,9 +26,9 @@ if (grepl('.*stanford\\.edu',Sys.info()[['nodename']])) {
         MC.CORES <- 12
     }
 } else {
-    DATA.DIR <- '~/Data/Currensee/'
-    OUT.DIR <- '~/Dropbox/Currensee Project/writing/'
-    CODE.DIR <- '~/Dropbox/Currensee Project/code/'
+    DATA.DIR <- '~/Data/forex/'
+    OUT.DIR <- '~/Dropbox/forex project/writing/'
+    CODE.DIR <- '~/Dropbox/forex project/code/'
 }
 
 # LOAD UTILITY FUNCTIONS
@@ -47,23 +47,27 @@ ad.ffd <- load.ffdf('./ffdb/all-adopts/')$ad.ffd
 
 good.cols <- c('user_id','day','cp',
                'ugrp','ugrpN','grp','grpN',
-               'ntotal.e2','npos.e2','nneg.e2','nfr.e2',
-               'ntotal.e10','npos.e10','nneg.e10','nfr.e10',
-               'ntotal.a14','npos.a14','nneg.a14','nfr.a14',
-               'daysactive','all.winfrac','user.winfrac','winfrac.e10',
+               #'ntotal.e2','npos.e2','nneg.e2','nfr.e2',
+               #'ntotal.e10','npos.e10','nneg.e10','nfr.e10',
+               #'ntotal.a14','npos.a14','nneg.a14','nfr.a14',
+               #'daysactive','all.winfrac','user.winfrac','winfrac.e10',
                'cum.adopt','badopt','rank',
-               'oddball5','oddball10','oddball20'
+               'oddball5','oddball10','oddball20',
+               'nopen.ego','nopen.alt','nopen.all',
+               'ntgt0.a14','ndpos.a14','ndpos.bc.a14'
                )
+select.max <- 5000
+select.max <- 20000
 
-print(system.time(
-        all.adopts <- as.data.table(as.data.frame(ad.ffd[ffwhich(ad.ffd, adopt_grp_select <= 5000),]))
-    ))
+#print(system.time(
+        #all.adopts <- as.data.table(as.data.frame(ad.ffd[ffwhich(ad.ffd, adopt_grp_select <= 5000),]))
+    #))
 
 # drop observations after adoption
-all.adopts <- all.adopts[cum.adopt==0]
+#all.adopts <- all.adopts[cum.adopt==0]
 
 print(system.time(
-        all.adopts <- as.data.table(as.data.frame(ad.ffd[ffwhich(ad.ffd, adopt_grp_select <= 20000 & cum.adopt == 0),]))
+        all.adopts <- as.data.table(as.data.frame(ad.ffd[ffwhich(ad.ffd, adopt_grp_select <= select.max & cum.adopt == 0), good.cols]))
     ))
 
 all.adopts[, oddball25 := rank > 25]
@@ -210,7 +214,7 @@ print(system.time(basem5.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20
 print(summary(basem5.20))
 
 save(basem5.5,basem5.10,basem5.20,
-     file='Rdata/adopt-analysis-oddball',compress=FALSE)
+     file='Rdata/adopt-analysis-oddball.Rdata',compress=FALSE)
 
 
 ################################################################################
@@ -262,20 +266,33 @@ save(basem6,
 ################################################################################
 # CURRENCY-PAIR FEs
 
-print(system.time(basem7 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + strata(grp,cp), data = all.adopts)))
+print(system.time(basem7 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + strata(grp) + strata(cp), data = all.adopts)))
 print(summary(basem7))
 
-print(system.time(basem7.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*log(rank) + strata(grp,cp), data = all.adopts)))
+print(system.time(basem7.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*log(rank) + strata(grp) + strata(cp), data = all.adopts)))
 print(summary(basem7.l))
 
-print(system.time(basem7.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball5 + strata(grp,cp), data = all.adopts)))
+print(system.time(basem7.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball5 + strata(grp) + strata(cp), data = all.adopts)))
 print(summary(basem7.5))
 
-print(system.time(basem7.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball10 + strata(grp,cp), data = all.adopts)))
+print(system.time(basem7.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball10 + strata(grp) + strata(cp), data = all.adopts)))
 print(summary(basem7.10))
 
-print(system.time(basem7.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(grp,cp), data = all.adopts)))
+print(system.time(basem7.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(grp) + strata(cp), data = all.adopts)))
 print(summary(basem7.20))
+
+save(basem7,basem7.l,basem7.5,basem7.10,basem7.20,
+     file='Rdata/adopt-analysis-time-fes.Rdata',compress=FALSE)
+
+
+################################################################################
+# STRAIGHT CURRENCY FEs
+
+print(system.time(basem8 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + as.factor(cp) + strata(grp), data = all.adopts)))
+print(summary(basem8))
+
+print(system.time(basem8.full <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*as.factor(cp) + strata(grp), data = all.adopts)))
+print(summary(basem8.full))
 
 
 ################################################################################
