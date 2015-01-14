@@ -6,6 +6,7 @@ library(stringr)
 library(survival)
 library(texreg)
 
+rm(list=ls())
 
 
 # MATCH FILE SETTINGS TO HOST MACHINE
@@ -25,8 +26,8 @@ if (grepl('.*stanford\\.edu',Sys.info()[['nodename']])) {
     }
 } else {
     DATA.DIR <- '~/Data/forex/'
-    OUT.DIR <- '~/Dropbox/Currensee Project/writing/'
-    CODE.DIR <- '~/Dropbox/Currensee Project/code/'
+    OUT.DIR <- '~/Dropbox/forex project/writing/'
+    CODE.DIR <- '~/Dropbox/forex project/code/'
 }
 
 # LOAD UTILITY FUNCTIONS
@@ -37,6 +38,7 @@ setwd(DATA.DIR)
 # LOAD IN DATA
 aus <- readRDS('./Rds/active-user-quantiles.Rds')
 dt <- readRDS('./Rds/day.stats-0-1samp.Rds')
+abc <- readRDS('./Rds/activity.by.currency-0-1samp.Rds')
 fpt <- readRDS('./Rds/forexposition.Rds')
 ffdfns <- load.ffdf('./ffdb/sbc')
 ffd <- ffdfns$ffd
@@ -231,11 +233,23 @@ res <- mclapply(cp.set, mc.cores=MC.CORES, mc.preschedule=FALSE,
 
         # get currency pair rank
         cp.rank <- cps[cp==ccp, rank]
+
+        # get currency opens
+        cp.opens <- abc[cp==ccp,list(user_id,day,type,nopen)]
+        setkey(cp.opens,user_id,day)
         
         # merge in adoption events
         setkey(adopt.es,user_id,day)
         cp.dt <- merge(c.dt, adopt.es, all.x=TRUE)
         cp.dt <- cp.dt[order(user_id,day)]
+
+        # merge in currency opens
+        cp.dt <- merge(cp.dt,cp.opens[type=='ego',list(user_id,day,nopen.ego=nopen)],by=c('user_id','day'),all.x=TRUE)
+        cp.dt <- merge(cp.dt,cp.opens[type=='alter',list(user_id,day,nopen.alt=nopen)],by=c('user_id','day'),all.x=TRUE)
+        cp.dt <- merge(cp.dt,cp.opens[type=='ego',list(nopen.all=sum(nopen)),by=day],by='day',all.x=TRUE)
+        cp.dt[is.na(nopen.ego),nopen.ego := 0]
+        cp.dt[is.na(nopen.alt),nopen.alt := 0]
+        cp.dt[is.na(nopen.all),nopen.all := 0]
 
         cat(ccp,'::',cp.rank,'::',format(object.size(cp.dt),units='auto'),'\n')
         #print(ccp)

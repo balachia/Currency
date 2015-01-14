@@ -4,6 +4,19 @@ library(data.table)
 
 rm(list=ls())
 
+activity.by.currency <- function(c.day,u.alts,u.fpt,alts.fpt) {
+    # restrict to alters as of day
+    # restrict to forex positions as of day
+    c.u.alts <- u.alts[senddate/86400000 < c.day, alter_id]
+    c.u.fpt <- u.fpt[openday == c.day,
+                     list(day=c.day,type='ego',nopen=.N),
+                     by=cp]
+    c.alts.fpt <- alts.fpt[user_id %in% c.u.alts & openday == c.day,
+                           list(day=c.day,type='alter',nopen=.N),
+                           by=cp]
+    rbind(c.u.fpt,c.alts.fpt)
+}
+
 success.by.currency <- function(c.day,u.alts,u.fpt,alts.fpt,gaps) {
     # idx <- c.day - u.minday + 1
 
@@ -104,19 +117,20 @@ day.stats <- function(c.day,u.alts,u.fpt,alts.fpt,u.dbap) {
 }
 
 # run settings
-SAMP.FRAC <- 0.9
-MIN.SAMP.FRAC <- 0.8
+SAMP.FRAC <- 1
+MIN.SAMP.FRAC <- 0
 #FUNC.NAME <- 'day.stats'
-FUNC.NAME <- 'success.by.currency'
+#FUNC.NAME <- 'success.by.currency'
+FUNC.NAME <- 'activity.by.currency'
 
 # system specific settings
 hostname <- Sys.info()['nodename']
 if(grepl('yen|barley|corn',hostname)) {
 #    setwd('~/2YP/data/')
-    setwd('~/Data/Currensee/Rds/')
+    setwd('~/Data/forex/Rds/')
     par.cores <- detectCores()
 } else {
-    setwd('~/Data/Currensee/')
+    setwd('~/Data/forex/')
     par.cores <- 2
 }
 
@@ -238,7 +252,10 @@ resdts <- mclapply(users$user_id,
             c.func <- function(cday) success.by.currency(cday,u.alts,u.fpt,alts.fpt,gaps)
         } else if (FUNC.NAME ==  'day.stats') {
             c.func <- function(cday) day.stats(cday,u.alts,u.fpt,alts.fpt,u.dbap)
+        } else if (FUNC.NAME ==  'activity.by.currency') {
+            c.func <- function(cday) activity.by.currency(cday,u.alts,u.fpt,alts.fpt)
         }
+
 
         resdts <- lapply(u.minday:u.maxday,
             # function(cday) success.by.currency(cday,u.alts,u.fpt,alts.fpt,gaps))
@@ -256,7 +273,8 @@ resdts <- mclapply(users$user_id,
         resdt
     })
 
-resdt <- rbindlist(resdts)
+resdtsf <- Filter(function(x) nrow(x) > 0, resdts)
+resdt <- rbindlist(resdtsf)
 
 saveRDS(resdt,paste0(FUNC.NAME,'-',MIN.SAMP.FRAC,'-',SAMP.FRAC,'samp.Rds'))
 cat(paste0(FUNC.NAME,'-',MIN.SAMP.FRAC,'-',SAMP.FRAC,'samp.Rds'), '\n')
