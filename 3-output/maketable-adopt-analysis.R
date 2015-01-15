@@ -1,7 +1,7 @@
 library(survival)
 library(texreg)
 
-setwd('~/Data/Currensee')
+setwd('~/Data/forex')
 load('adopt-analysis.Rdata')
 
 setwd('~/2YP/writing/tables/')
