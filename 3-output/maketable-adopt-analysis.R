@@ -2,7 +2,10 @@ library(survival)
 library(texreg)
 
 setwd('~/Data/forex')
-load('adopt-analysis.Rdata')
+#load('adopt-analysis.Rdata')
+load('Rdata/adopt-analysis-basem.Rdata')
+load('Rdata/adopt-analysis-oddball.Rdata')
+load('Rdata/adopt-analysis-rank.Rdata')
 
 setwd('~/2YP/writing/tables/')
 

@@ -57,6 +57,7 @@ good.cols <- c('user_id','day','cp',
                'ntgt0.a14','ndpos.a14','ndpos.bc.a14'
                )
 select.max <- 5000
+#select.max <- 10000
 select.max <- 20000
 
 #print(system.time(
@@ -74,9 +75,33 @@ all.adopts[, oddball25 := rank > 25]
 all.adopts[, oddball30 := rank > 30]
 all.adopts[, oddball40 := rank > 40]
 all.adopts[, oddball50 := rank > 50]
+all.adopts[, nopen.other := nopen.all - nopen.ego - nopen.alt]
+all.adopts[, nopen.eq0 := as.numeric(nopen.other==0)]
+
+# normalize by weekly activity in that currency
+all.adopts[order(day),
+           nopen.week := filter(nopen.other,
+                                filter=rep(1,min(7,.N)),
+                                sides=1,
+                                method='conv'),
+           by=list(user_id,cp)]
+all.adopts[order(day),
+           nopen.week := c(rep(sum(nopen.other[1:7],na.rm=TRUE),6),tail(nopen.week,-6)),
+           by=list(user_id,cp)]
+all.adopts[, nopen.week := as.numeric(nopen.week)]
+all.adopts[, nopen.norm := nopen.other / (nopen.week + 1)]
+
+# normalize by activity across all currencies
+all.adopts[, nopen.week.all := sum(nopen.week), by=list(user_id,day)]
+all.adopts[, nopen.norm.all := nopen.other / (nopen.week.all + 1)]
+
 
 # save data file
 save(all.adopts,file='Rdata/adopt-analysis-data.Rdata',compress=FALSE)
+
+if(FALSE) {
+    load('Rdata/adopt-analysis-data.Rdata')
+}
 
 #all.adopts.full <- readRDS('Rds/weekly-all-adopts.Rds')
 #all.adopts2 <- readRDS('Rds/weekly-short-adopts.Rds')
@@ -266,19 +291,19 @@ save(basem6,
 ################################################################################
 # CURRENCY-PAIR FEs
 
-print(system.time(basem7 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + strata(grp) + strata(cp), data = all.adopts)))
+print(system.time(basem7 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + strata(grp,cp), data = all.adopts)))
 print(summary(basem7))
 
-print(system.time(basem7.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*log(rank) + strata(grp) + strata(cp), data = all.adopts)))
+print(system.time(basem7.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*log(rank) + strata(grp,cp), data = all.adopts)))
 print(summary(basem7.l))
 
-print(system.time(basem7.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball5 + strata(grp) + strata(cp), data = all.adopts)))
+print(system.time(basem7.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball5 + strata(grp,cp), data = all.adopts)))
 print(summary(basem7.5))
 
-print(system.time(basem7.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball10 + strata(grp) + strata(cp), data = all.adopts)))
+print(system.time(basem7.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball10 + strata(grp,cp), data = all.adopts)))
 print(summary(basem7.10))
 
-print(system.time(basem7.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(grp) + strata(cp), data = all.adopts)))
+print(system.time(basem7.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(grp,cp), data = all.adopts)))
 print(summary(basem7.20))
 
 save(basem7,basem7.l,basem7.5,basem7.10,basem7.20,
@@ -287,12 +312,100 @@ save(basem7,basem7.l,basem7.5,basem7.10,basem7.20,
 
 ################################################################################
 # STRAIGHT CURRENCY FEs
+# these appear to be unviable -- too much memory use, too slow
 
-print(system.time(basem8 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + as.factor(cp) + strata(grp), data = all.adopts)))
-print(summary(basem8))
+#print(system.time(basem8 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + as.factor(cp) + strata(grp), data = all.adopts)))
+#print(summary(basem8))
 
-print(system.time(basem8.full <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*as.factor(cp) + strata(grp), data = all.adopts)))
-print(summary(basem8.full))
+#print(system.time(basem8.full <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*as.factor(cp) + strata(grp), data = all.adopts)))
+#print(summary(basem8.full))
+
+
+################################################################################
+# CURRENCY OPENS
+
+#print(system.time(basem9 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + nopen.norm.all + nopen.eq0 + strata(grp), data = all.adopts)))
+#print(summary(basem9))
+
+#print(system.time(basem9.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*log(rank) + nopen.norm.all + nopen.eq0 + strata(grp), data = all.adopts)))
+#print(summary(basem9.l))
+
+#print(system.time(basem9.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball5 + nopen.norm.all + nopen.eq0 + strata(grp), data = all.adopts)))
+#print(summary(basem9.5))
+
+#print(system.time(basem9.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball10 + nopen.norm.all + nopen.eq0 + strata(grp), data = all.adopts)))
+#print(summary(basem9.10))
+
+#print(system.time(basem9.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20 + nopen.norm.all + nopen.eq0 + strata(grp), data = all.adopts)))
+#print(summary(basem9.20))
+
+# interact with rank
+print(system.time(basem9a <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*rank + strata(grp), data = all.adopts)))
+print(summary(basem9a))
+
+print(system.time(basem9a.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*log(rank) + strata(grp), data = all.adopts)))
+print(summary(basem9a.l))
+
+print(system.time(basem9a.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*oddball5 + strata(grp), data = all.adopts)))
+print(summary(basem9a.5))
+
+print(system.time(basem9a.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*oddball10 + strata(grp), data = all.adopts)))
+print(summary(basem9a.10))
+
+print(system.time(basem9a.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*oddball20 + strata(grp), data = all.adopts)))
+print(summary(basem9a.20))
+
+#save(basem9,basem9.l,basem9.5,basem9.10,basem9.20,
+     #basem9a,basem9a.l,basem9a.5,basem9a.10,basem9a.20,
+     #file='Rdata/adopt-analysis-control-opens.Rdata',compress=FALSE)
+
+save(basem9a,basem9a.l,basem9a.5,basem9a.10,basem9a.20,
+     file='Rdata/adopt-analysis-control-opens.Rdata',compress=FALSE)
+
+
+
+################################################################################
+# PSEUDO-COX: USER STRATA
+
+print(system.time(basem10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + strata(user_id,day), data = all.adopts)))
+print(summary(basem10))
+
+print(system.time(basem10.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*log(rank) + strata(user_id,day), data = all.adopts)))
+print(summary(basem10.l))
+
+print(system.time(basem10.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball5 + strata(user_id,day), data = all.adopts)))
+print(summary(basem10.5))
+
+print(system.time(basem10.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball10 + strata(user_id,day), data = all.adopts)))
+print(summary(basem10.10))
+
+print(system.time(basem10.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(user_id,day), data = all.adopts)))
+print(summary(basem10.20))
+
+save(basem10,basem10.l,basem10.5,basem10.10,basem10.20,
+     file='Rdata/adopt-analysis-sudocox-user.Rdata',compress=FALSE)
+
+
+################################################################################
+# PSEUDO-COX: CURRENCY STRATA
+
+print(system.time(basem11 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + strata(cp,day), data = all.adopts)))
+print(summary(basem11))
+
+print(system.time(basem11.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*log(rank) + strata(cp,day), data = all.adopts)))
+print(summary(basem11.l))
+
+print(system.time(basem11.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball5 + strata(cp,day), data = all.adopts)))
+print(summary(basem11.5))
+
+print(system.time(basem11.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball10 + strata(cp,day), data = all.adopts)))
+print(summary(basem11.10))
+
+print(system.time(basem11.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(cp,day), data = all.adopts)))
+print(summary(basem11.20))
+
+save(basem11,basem11.l,basem11.5,basem11.10,basem11.20,
+     file='Rdata/adopt-analysis-sudocox-cp.Rdata',compress=FALSE)
 
 
 ################################################################################
