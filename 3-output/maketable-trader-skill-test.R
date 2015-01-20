@@ -14,13 +14,13 @@ setwd('~/2YP/writing/tables/')
 
 strip.html <- function(x) gsub("\\n\\s+","\n",x)
 
-################################################################################
-
 screenreg(res$lags, digits=4)
 screenreg(res$ranks, digits=4)
 screenreg(res$rank2s, digits=4)
 screenreg(res$poolms, digits=4)
 screenreg(res$rems, digits=4)
+
+################################################################################
 
 texreg(res$lags,
        file='trade-skill-lags.tex', label='tab:skill-lags',
