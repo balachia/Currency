@@ -421,6 +421,9 @@ gc()
 ################################################################################
 # PSEUDO-COX: USER STRATA
 
+print(system.time(basem10.base <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14) + strata(user_id,day), data = all.adopts)))
+print(summary(basem10.base))
+
 print(system.time(basem10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + strata(user_id,day), data = all.adopts)))
 print(summary(basem10))
 
@@ -436,7 +439,7 @@ print(summary(basem10.10))
 print(system.time(basem10.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(user_id,day), data = all.adopts)))
 print(summary(basem10.20))
 
-save(basem10,basem10.l,basem10.5,basem10.10,basem10.20,
+save(basem10.base,basem10,basem10.l,basem10.5,basem10.10,basem10.20,
      file='Rdata/adopt-analysis-sudocox-user.Rdata',compress=FALSE)
 
 do.call(rm,as.list(ls()[grep('basem10',ls())]))
