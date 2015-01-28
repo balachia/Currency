@@ -100,7 +100,7 @@ all.adopts[, nopen.norm.all := nopen.other / (nopen.week.all + 1)]
 all.adopts <- merge(all.adopts,
                     tl.users[,list(user_id=tl_id,tl.user)],
                     by='user_id', all.x=TRUE)
-all.adopts[is.na(user_id),user_id := 0]
+all.adopts[is.na(tl.user),tl.user := 0]
 
 # save data file
 save(all.adopts,file='Rdata/adopt-analysis-data.Rdata',compress=FALSE)
@@ -159,6 +159,9 @@ print(summary(basem3))
 save(basem1,basem2,basem3,
      file='Rdata/adopt-analysis-basem.Rdata',compress=FALSE)
 
+do.call(rm,as.list(ls()[grep('basem[123]',ls())]))
+gc()
+
 
 ################################################################################
 # CNN EFFECT
@@ -196,6 +199,24 @@ save(basem1.f,basem2.f,basem3.f,
      basem1.pf,basem2.pf,basem3.pf,
      file='Rdata/adopt-analysis-cnn.Rdata',compress=FALSE)
 
+do.call(rm,as.list(ls()[grep('basem[123]',ls())]))
+gc()
+
+
+################################################################################
+# PSEUDO-COX: USER STRATA
+
+
+
+################################################################################
+# PSEUDO-COX: USER STRATA
+
+
+
+################################################################################
+# PSEUDO-COX: USER STRATA
+
+
 
 ################################################################################
 # RANK SPECIFICATIONS
@@ -231,6 +252,14 @@ save(basem4,basem4.l,
      basem4.ns0,basem4.ns1,basem4.ns2,
      file='Rdata/adopt-analysis-rank.Rdata',compress=FALSE)
 
+do.call(rm,as.list(ls()[grep('basem4',ls())]))
+gc()
+
+
+################################################################################
+# PSEUDO-COX: USER STRATA
+
+
 
 ################################################################################
 # ODDBALLS
@@ -246,6 +275,14 @@ print(summary(basem5.20))
 
 save(basem5.5,basem5.10,basem5.20,
      file='Rdata/adopt-analysis-oddball.Rdata',compress=FALSE)
+
+do.call(rm,as.list(ls()[grep('basem5',ls())]))
+gc()
+
+
+################################################################################
+# PSEUDO-COX: USER STRATA
+
 
 
 ################################################################################
@@ -284,6 +321,9 @@ save(basem5.5f,basem5.10f,basem5.20f,
      basem5.5pf,basem5.10pf,basem5.20pf,
      file='Rdata/adopt-analysis-oddball-cnn.Rdata',compress=FALSE)
 
+do.call(rm,as.list(ls()[grep('basem5',ls())]))
+gc()
+
 
 ################################################################################
 # DOUBLE ODDBALLS
@@ -292,6 +332,9 @@ print(summary(basem6))
 
 save(basem6,
      file='Rdata/adopt-analysis-double-oddball.Rdata',compress=FALSE)
+
+do.call(rm,as.list(ls()[grep('basem6',ls())]))
+gc()
 
 
 ################################################################################
@@ -314,6 +357,9 @@ print(summary(basem7.20))
 
 save(basem7,basem7.l,basem7.5,basem7.10,basem7.20,
      file='Rdata/adopt-analysis-time-fes.Rdata',compress=FALSE)
+
+do.call(rm,as.list(ls()[grep('basem7',ls())]))
+gc()
 
 
 ################################################################################
@@ -368,6 +414,8 @@ print(summary(basem9a.20))
 save(basem9a,basem9a.l,basem9a.5,basem9a.10,basem9a.20,
      file='Rdata/adopt-analysis-control-opens.Rdata',compress=FALSE)
 
+do.call(rm,as.list(ls()[grep('basem9',ls())]))
+gc()
 
 
 ################################################################################
@@ -391,6 +439,9 @@ print(summary(basem10.20))
 save(basem10,basem10.l,basem10.5,basem10.10,basem10.20,
      file='Rdata/adopt-analysis-sudocox-user.Rdata',compress=FALSE)
 
+do.call(rm,as.list(ls()[grep('basem10',ls())]))
+gc()
+
 
 ################################################################################
 # PSEUDO-COX: CURRENCY STRATA
@@ -413,27 +464,71 @@ print(summary(basem11.20))
 save(basem11,basem11.l,basem11.5,basem11.10,basem11.20,
      file='Rdata/adopt-analysis-sudocox-cp.Rdata',compress=FALSE)
 
+do.call(rm,as.list(ls()[grep('basem11',ls())]))
+gc()
+
 
 ################################################################################
-# PSEUDO-COX: USER STRATA
+# TRADE LEADER EXPERIENCE
 
-print(system.time(basem12 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*rank + strata(user_id,day), data = all.adopts)))
+print(system.time(basem12 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*rank + strata(grp), data = all.adopts)))
 print(summary(basem12))
 
-print(system.time(basem12.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*log(rank) + strata(user_id,day), data = all.adopts)))
+print(system.time(basem12.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*log(rank) + strata(grp), data = all.adopts)))
 print(summary(basem12.l))
 
-print(system.time(basem12.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball5 + strata(user_id,day), data = all.adopts)))
+print(system.time(basem12.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball5 + strata(grp), data = all.adopts)))
 print(summary(basem12.5))
 
-print(system.time(basem12.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball10 + strata(user_id,day), data = all.adopts)))
+print(system.time(basem12.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball10 + strata(grp), data = all.adopts)))
 print(summary(basem12.10))
 
-print(system.time(basem12.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball20 + strata(user_id,day), data = all.adopts)))
+print(system.time(basem12.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball20 + strata(grp), data = all.adopts)))
 print(summary(basem12.20))
 
+# sudo-cox
+print(system.time(basem12a <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*rank + strata(user_id,day), data = all.adopts)))
+print(summary(basem12a))
+
+print(system.time(basem12a.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*log(rank) + strata(user_id,day), data = all.adopts)))
+print(summary(basem12a.l))
+
+print(system.time(basem12a.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball5 + strata(user_id,day), data = all.adopts)))
+print(summary(basem12a.5))
+
+print(system.time(basem12a.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball10 + strata(user_id,day), data = all.adopts)))
+print(summary(basem12a.10))
+
+print(system.time(basem12a.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball20 + strata(user_id,day), data = all.adopts)))
+print(summary(basem12a.20))
+
+# with currency opens
+print(system.time(basem12b <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*rank + strata(user_id,day), data = all.adopts)))
+print(summary(basem12b))
+
+print(system.time(basem12b.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*log(rank) + strata(user_id,day), data = all.adopts)))
+print(summary(basem12b.l))
+
+print(system.time(basem12b.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*oddball5 + strata(user_id,day), data = all.adopts)))
+print(summary(basem12b.5))
+
+print(system.time(basem12b.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*oddball10 + strata(user_id,day), data = all.adopts)))
+print(summary(basem12b.10))
+
+print(system.time(basem12b.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*oddball20 + strata(user_id,day), data = all.adopts)))
+print(summary(basem12a.20))
+
 save(basem12,basem12.l,basem12.5,basem12.10,basem12.20,
-     file='Rdata/adopt-analysis-sudocox-user.Rdata',compress=FALSE)
+     file='Rdata/adopt-analysis-tl.Rdata',compress=FALSE)
+
+save(basem12a,basem12a.l,basem12a.5,basem12a.10,basem12a.20,
+     file='Rdata/adopt-analysis-tl-sudocox.Rdata',compress=FALSE)
+
+save(basem12b,basem12b.l,basem12b.5,basem12b.10,basem12b.20,
+     file='Rdata/adopt-analysis-tl-sudocox-opens.Rdata',compress=FALSE)
+
+do.call(rm,as.list(ls()[grep('basem12',ls())]))
+gc()
 
 
 ################################################################################
