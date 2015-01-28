@@ -54,9 +54,9 @@ t.assocs <- tl.assoc[,list(us = length(unique(user_id))), by=tl_id]
 
 # export trade leader ids
 setwd('~/Data/forex')
-saveRDS(tl.assoc[,list(tl_user=1),by=tl_id],
+saveRDS(tl.assoc[,list(tl.user=1),by=tl_id],
         'Rds/trade-leader-users.Rds')
-saveRDS(tl.assoc[,list(tl_user=1),by=tl_baid],
+saveRDS(tl.assoc[,list(tl.ba=1),by=tl_baid],
         'Rds/trade-leader-brokeraccounts.Rds')
 
 
