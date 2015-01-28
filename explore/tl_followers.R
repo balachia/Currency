@@ -2,7 +2,7 @@ library(data.table)
 
 rm(list=ls())
 
-setwd('~/Data/Currensee/tables-2014/Rds')
+setwd('~/Data/forex/tables-2014/Rds')
 
 ba <- readRDS('BrokerAccount.Rds')
 ba <- ba[,list(brokerAccount_id=id, user_id, baseCurrency)]
@@ -51,3 +51,12 @@ tl.assoc <- fpt.f[,list(.N), by=list(user_id,tl_id,tl_baid)]
 
 u.assocs <- tl.assoc[,list(tls = length(unique(tl_id))),by=user_id]
 t.assocs <- tl.assoc[,list(us = length(unique(user_id))), by=tl_id]
+
+# export trade leader ids
+setwd('~/Data/forex')
+saveRDS(tl.assoc[,list(tl_user=1),by=tl_id],
+        'Rds/trade-leader-users.Rds')
+saveRDS(tl.assoc[,list(tl_user=1),by=tl_baid],
+        'Rds/trade-leader-brokeraccounts.Rds')
+
+
