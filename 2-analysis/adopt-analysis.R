@@ -44,6 +44,7 @@ if(FALSE) {
 
 
 ad.ffd <- load.ffdf('./ffdb/all-adopts/')$ad.ffd
+tl.users <- readRDS('Rds/trade-leader-users.Rds')
 
 good.cols <- c('user_id','day','cp',
                'ugrp','ugrpN','grp','grpN',
@@ -95,6 +96,11 @@ all.adopts[, nopen.norm := nopen.other / (nopen.week + 1)]
 all.adopts[, nopen.week.all := sum(nopen.week), by=list(user_id,day)]
 all.adopts[, nopen.norm.all := nopen.other / (nopen.week.all + 1)]
 
+# merge in trade leader users
+all.adopts <- merge(all.adopts,
+                    tl.users[,list(user_id=tl_id,tl.user)],
+                    by='user_id', all.x=TRUE)
+all.adopts[is.na(user_id),user_id := 0]
 
 # save data file
 save(all.adopts,file='Rdata/adopt-analysis-data.Rdata',compress=FALSE)
@@ -406,6 +412,28 @@ print(summary(basem11.20))
 
 save(basem11,basem11.l,basem11.5,basem11.10,basem11.20,
      file='Rdata/adopt-analysis-sudocox-cp.Rdata',compress=FALSE)
+
+
+################################################################################
+# PSEUDO-COX: USER STRATA
+
+print(system.time(basem12 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*rank + strata(user_id,day), data = all.adopts)))
+print(summary(basem12))
+
+print(system.time(basem12.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*log(rank) + strata(user_id,day), data = all.adopts)))
+print(summary(basem12.l))
+
+print(system.time(basem12.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball5 + strata(user_id,day), data = all.adopts)))
+print(summary(basem12.5))
+
+print(system.time(basem12.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball10 + strata(user_id,day), data = all.adopts)))
+print(summary(basem12.10))
+
+print(system.time(basem12.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball20 + strata(user_id,day), data = all.adopts)))
+print(summary(basem12.20))
+
+save(basem12,basem12.l,basem12.5,basem12.10,basem12.20,
+     file='Rdata/adopt-analysis-sudocox-user.Rdata',compress=FALSE)
 
 
 ################################################################################
