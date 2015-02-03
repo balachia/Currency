@@ -310,7 +310,8 @@ ptm <- proc.time()
 unlink('./ffdb/all-adopts/', recursive=TRUE)
 ad.ffd <- NULL
 for (ccp in cp.set) {
-    print(ccp)
+    cat(ccp,'::',which(ccp == cp.set),'\n')
+    #print(ccp)
     ad.ffd0 <- load.ffdf(paste0('./ffdb/cp-adopts/',ccp,'/'))$cp.ffd
     if (is.null(ad.ffd)) {
         ad.ffd <- clone.ffdf(ad.ffd0)
