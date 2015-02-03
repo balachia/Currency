@@ -1,4 +1,6 @@
 library(ffbase)
+library(stringr)
+library(parallel)
 library(data.table)
 
 
