@@ -45,6 +45,19 @@ if(FALSE) {
 
 ad.ffd <- load.ffdf('./ffdb/all-adopts/')$ad.ffd
 tl.users <- readRDS('Rds/trade-leader-users.Rds')
+adopt.spells <- readRDS('Rds/adoption-spells.Rds')
+adopt.spells <- adopt.spells[cum.adopt==0]
+adopt.spells.surv <- with(adopt.spells,Surv(day,endday+1,badopt))
+
+
+# get user-days
+print(system.time(
+    tmpdt <- as.data.table(as.data.frame(ad.ffd[,c('badopt','user_id','day')]))))
+
+# generate user-day samples properly
+set.seed(1)
+tmpdt[,grp.badopt := rep(sum(badopt),.N),by=list(user_id,day)]
+tmpdt[,grp.select := runif(1),by=list(user_id,day)]
 
 good.cols <- c('user_id','day','cp',
                'ugrp','ugrpN','grp','grpN',
@@ -57,9 +70,11 @@ good.cols <- c('user_id','day','cp',
                'nopen.ego','nopen.alt','nopen.all',
                'ntgt0.a14','ndpos.a14','ndpos.bc.a14'
                )
+# max selector = 27407 with no user censoring
 select.max <- 5000
 #select.max <- 10000
 select.max <- 20000
+select.max <- 25000
 
 #print(system.time(
         #all.adopts <- as.data.table(as.data.frame(ad.ffd[ffwhich(ad.ffd, adopt_grp_select <= 5000),]))
@@ -68,8 +83,17 @@ select.max <- 20000
 # drop observations after adoption
 #all.adopts <- all.adopts[cum.adopt==0]
 
+#print(system.time(
+        #all.adopts <- as.data.table(as.data.frame(ad.ffd[ffwhich(ad.ffd, adopt_grp_select <= select.max & cum.adopt == 0), good.cols]))
+    #))
+
+# select ALL cases and 1% sample of non-case days
+#ffidx <- ff(tmpdt[,
+    #which((grp.badopt > 0 & grp.select < 1) | grp.select < 0.01)])
+ffidx <- ff(tmpdt[,
+    which((grp.badopt > 0 & grp.select < 1) | grp.select < 0.0)])
 print(system.time(
-        all.adopts <- as.data.table(as.data.frame(ad.ffd[ffwhich(ad.ffd, adopt_grp_select <= select.max & cum.adopt == 0), good.cols]))
+        all.adopts <- as.data.table(as.data.frame(ad.ffd[ffidx, good.cols]))
     ))
 
 all.adopts[, oddball25 := rank > 25]
@@ -101,6 +125,13 @@ all.adopts <- merge(all.adopts,
                     tl.users[,list(user_id=tl_id,tl.user)],
                     by='user_id', all.x=TRUE)
 all.adopts[is.na(tl.user),tl.user := 0]
+
+# merge into spells as well
+adopt.spells <- merge(adopt.spells,
+                      tl.users[,list(user_id=tl_id,tl.user)],
+                      by='user_id', all.x=TRUE)
+adopt.spells[is.na(tl.user),tl.user := 0]
+
 
 # save data file
 save(all.adopts,file='Rdata/adopt-analysis-data.Rdata',compress=FALSE)
@@ -144,6 +175,143 @@ if(FALSE) {
 # ANALYSIS TIME
 ################################################################################
 ################################################################################
+
+################################################################################
+# COX
+
+print(system.time(coxm1 <- coxph(adopt.spells.surv ~ ntgt0.a14, data=adopt.spells)))
+print(summary(coxm1))
+
+print(system.time(coxm2 <- coxph(adopt.spells.surv ~ ntgt0.a14 + ndpos.a14, data=adopt.spells)))
+print(summary(coxm2))
+
+print(system.time(coxm3 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*rank, data=adopt.spells)))
+print(summary(coxm3))
+
+print(system.time(coxm3.l <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*log(rank), data=adopt.spells)))
+print(summary(coxm3.l))
+
+print(system.time(coxm3.5 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball5, data=adopt.spells)))
+print(summary(coxm3.5))
+
+print(system.time(coxm3.10 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball10, data=adopt.spells)))
+print(summary(coxm3.10))
+
+print(system.time(coxm3.20 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball20, data=adopt.spells)))
+print(summary(coxm3.20))
+
+save(coxm1,coxm2,
+     file='Rdata/adopt-analysis-cox-base.Rdata',compress=FALSE)
+
+save(coxm3,coxm3.l,coxm3.5,coxm3.10,coxm3.20,
+     file='Rdata/adopt-analysis-cox.Rdata',compress=FALSE)
+
+
+# man-strata
+print(system.time(coxm4 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*rank + strata(user_id), data=adopt.spells)))
+print(summary(coxm4))
+
+print(system.time(coxm4.l <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*log(rank) + strata(user_id), data=adopt.spells)))
+print(summary(coxm4.l))
+
+print(system.time(coxm4.5 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball5 + strata(user_id), data=adopt.spells)))
+print(summary(coxm4.5))
+
+print(system.time(coxm4.10 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball10 + strata(user_id), data=adopt.spells)))
+print(summary(coxm4.10))
+
+print(system.time(coxm4.20 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(user_id), data=adopt.spells)))
+print(summary(coxm4.20))
+
+save(coxm4,coxm4.l,coxm4.5,coxm4.10,coxm4.20,
+     file='Rdata/adopt-analysis-cox-user.Rdata',compress=FALSE)
+
+
+# cp-strata
+print(system.time(coxm5 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*rank + strata(cp), data=adopt.spells)))
+print(summary(coxm5))
+
+print(system.time(coxm5.l <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*log(rank) + strata(cp), data=adopt.spells)))
+print(summary(coxm5.l))
+
+print(system.time(coxm5.5 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball5 + strata(cp), data=adopt.spells)))
+print(summary(coxm5.5))
+
+print(system.time(coxm5.10 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball10 + strata(cp), data=adopt.spells)))
+print(summary(coxm5.10))
+
+print(system.time(coxm5.20 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(cp), data=adopt.spells)))
+print(summary(coxm5.20))
+
+save(coxm5,coxm5.l,coxm5.5,coxm5.10,coxm5.20,
+     file='Rdata/adopt-analysis-cox-cp.Rdata',compress=FALSE)
+
+
+# trade leader interaction
+print(system.time(coxm6 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*rank*tl.user, data=adopt.spells)))
+print(summary(coxm6))
+
+print(system.time(coxm6.l <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*log(rank)*tl.user, data=adopt.spells)))
+print(summary(coxm6.l))
+
+print(system.time(coxm6.5 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball5*tl.user, data=adopt.spells)))
+print(summary(coxm6.5))
+
+print(system.time(coxm6.10 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball10*tl.user, data=adopt.spells)))
+print(summary(coxm6.10))
+
+print(system.time(coxm6.20 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball20*tl.user, data=adopt.spells)))
+print(summary(coxm6.20))
+
+save(coxm6,coxm6.l,coxm6.5,coxm6.10,coxm6.20,
+     file='Rdata/adopt-analysis-cox-tlxp.Rdata',compress=FALSE)
+
+
+# trade leader interaction
+print(system.time(coxm7 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*rank*tl.user + strata(user_id), data=adopt.spells)))
+print(summary(coxm7))
+
+print(system.time(coxm7.l <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*log(rank)*tl.user + strata(user_id), data=adopt.spells)))
+print(summary(coxm7.l))
+
+print(system.time(coxm7.5 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball5*tl.user + strata(user_id), data=adopt.spells)))
+print(summary(coxm7.5))
+
+print(system.time(coxm7.10 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball10*tl.user + strata(user_id), data=adopt.spells)))
+print(summary(coxm7.10))
+
+print(system.time(coxm7.20 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball20*tl.user + strata(user_id), data=adopt.spells)))
+print(summary(coxm7.20))
+
+save(coxm7,coxm7.l,coxm7.5,coxm7.10,coxm7.20,
+     file='Rdata/adopt-analysis-cox-user-tlxp.Rdata',compress=FALSE)
+
+
+# trade leader interaction
+print(system.time(coxm8 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*rank*tl.user + strata(cp), data=adopt.spells)))
+print(summary(coxm8))
+
+print(system.time(coxm8.l <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*log(rank)*tl.user + strata(cp), data=adopt.spells)))
+print(summary(coxm8.l))
+
+print(system.time(coxm8.5 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball5*tl.user + strata(cp), data=adopt.spells)))
+print(summary(coxm8.5))
+
+print(system.time(coxm8.10 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball10*tl.user + strata(cp), data=adopt.spells)))
+print(summary(coxm8.10))
+
+print(system.time(coxm8.20 <- coxph(adopt.spells.surv ~ (ntgt0.a14 + ndpos.a14)*oddball20*tl.user + strata(cp), data=adopt.spells)))
+print(summary(coxm8.20))
+
+save(coxm8,coxm8.l,coxm8.5,coxm8.10,coxm8.20,
+     file='Rdata/adopt-analysis-cox-cp-tlxp.Rdata',compress=FALSE)
+
+do.call(rm,as.list(ls()[grep('coxm',ls())]))
+gc()
+
+
+
+
 
 ################################################################################
 # BASELINE
@@ -204,21 +372,6 @@ gc()
 
 
 ################################################################################
-# PSEUDO-COX: USER STRATA
-
-
-
-################################################################################
-# PSEUDO-COX: USER STRATA
-
-
-
-################################################################################
-# PSEUDO-COX: USER STRATA
-
-
-
-################################################################################
 # RANK SPECIFICATIONS
 
 print(system.time(basem4 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + strata(grp), data = all.adopts)))
@@ -254,10 +407,6 @@ save(basem4,basem4.l,
 
 do.call(rm,as.list(ls()[grep('basem4',ls())]))
 gc()
-
-
-################################################################################
-# PSEUDO-COX: USER STRATA
 
 
 
