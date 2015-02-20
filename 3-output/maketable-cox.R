@@ -115,4 +115,36 @@ hstr <- htmlreg(list(coxm5, coxm5.l, coxm5.5, coxm5.10, coxm5.20),
 write(strip.html(hstr), file='adopts-cox-cp.html')
 
 
+################################################################################
+
+texreg(list(coxm6, coxm6.l, coxm6.5, coxm6.10, coxm6.20),
+       file='adopts-cox-cp.tex', label='tab:adopts-bld',
+       digits=5, float.pos='htb',
+       caption='Cox (Currency Pair Strata): Chance of Currency Adoption',
+       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
+       custom.model.names=c('(1) Baseline', '(2) Log Rank', '(3) Rank > 5', '(4) Rank > 10', '(5) Rank > 20'),
+       reorder.coef=NULL,
+       custom.coef.names=c('Alter Trade', 'Alter Profit',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank'),
+       include.zph=FALSE, include.rsquared=FALSE, include.maxrs=FALSE, include.missings=FALSE)
+
+hstr <- htmlreg(list(coxm5, coxm5.l, coxm5.5, coxm5.10, coxm5.20),
+       doctype=FALSE, star.symbol='&lowast;',
+       digits=5, float.pos='htb',
+       caption='Cox (Currency Pair Strata): Chance of Currency Adoption',
+       custom.model.names=c('(1) Baseline', '(2) Log Rank', '(3) Rank > 5', '(4) Rank > 10', '(5) Rank > 20'),
+       reorder.coef=NULL,
+       custom.coef.names=c('Alter Trade', 'Alter Profit',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank'),
+       include.zph=FALSE, include.rsquared=FALSE, include.maxrs=FALSE, include.missings=FALSE)
+write(strip.html(hstr), file='adopts-cox-cp.html')
+
 
