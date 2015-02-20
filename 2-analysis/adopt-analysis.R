@@ -52,12 +52,18 @@ adopt.spells.surv <- with(adopt.spells,Surv(day,endday+1,badopt))
 
 # get user-days
 print(system.time(
-    tmpdt <- as.data.table(as.data.frame(ad.ffd[,c('badopt','user_id','day')]))))
+    tmpdt <- as.data.table(as.data.frame(ad.ffd[,c('badopt','cp','user_id','day')]))))
 
 # generate user-day samples properly
 set.seed(1)
-tmpdt[,grp.badopt := rep(sum(badopt),.N),by=list(user_id,day)]
-tmpdt[,grp.select := runif(1),by=list(user_id,day)]
+tmpdt[,user.badopt := rep(sum(badopt),.N),by=list(user_id,day)]
+tmpdt[,user.select := runif(1),by=list(user_id,day)]
+
+# generate cp-day samples properly
+set.seed(1)
+tmpdt[,cp.badopt := rep(sum(badopt),.N),by=list(cp,day)]
+tmpdt[,cp.select := runif(1),by=list(cp,day)]
+
 
 good.cols <- c('user_id','day','cp',
                'ugrp','ugrpN','grp','grpN',
@@ -91,7 +97,9 @@ select.max <- 25000
 #ffidx <- ff(tmpdt[,
     #which((grp.badopt > 0 & grp.select < 1) | grp.select < 0.01)])
 ffidx <- ff(tmpdt[,
-    which((grp.badopt > 0 & grp.select < 1) | grp.select < 0.0)])
+    which((user.badopt > 0 & user.select < 1) | user.select < 0.0)])
+#ffidx <- ff(tmpdt[,
+    #which((cp.badopt > 0 & cp.select < 1) | cp.select < 0.0)])
 print(system.time(
         all.adopts <- as.data.table(as.data.frame(ad.ffd[ffidx, good.cols]))
     ))
@@ -598,6 +606,9 @@ gc()
 ################################################################################
 # PSEUDO-COX: CURRENCY STRATA
 
+print(system.time(basem11.base <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14) + strata(cp,day), data = all.adopts)))
+print(summary(basem11.base))
+
 print(system.time(basem11 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*rank + strata(cp,day), data = all.adopts)))
 print(summary(basem11))
 
@@ -613,7 +624,7 @@ print(summary(basem11.10))
 print(system.time(basem11.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(cp,day), data = all.adopts)))
 print(summary(basem11.20))
 
-save(basem11,basem11.l,basem11.5,basem11.10,basem11.20,
+save(basem11.base, basem11,basem11.l,basem11.5,basem11.10,basem11.20,
      file='Rdata/adopt-analysis-sudocox-cp.Rdata',compress=FALSE)
 
 do.call(rm,as.list(ls()[grep('basem11',ls())]))
@@ -638,7 +649,7 @@ print(summary(basem12.10))
 print(system.time(basem12.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball20 + strata(grp), data = all.adopts)))
 print(summary(basem12.20))
 
-# sudo-cox
+# sudo-cox user
 print(system.time(basem12a <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*rank + strata(user_id,day), data = all.adopts)))
 print(summary(basem12a))
 
@@ -668,16 +679,36 @@ print(system.time(basem12b.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.
 print(summary(basem12b.10))
 
 print(system.time(basem12b.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*oddball20 + strata(user_id,day), data = all.adopts)))
-print(summary(basem12a.20))
+print(summary(basem12b.20))
+
+# sudo-cox cp
+print(system.time(basem12c <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*rank + strata(cp,day), data = all.adopts)))
+print(summary(basem12c))
+
+print(system.time(basem12c.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*log(rank) + strata(cp,day), data = all.adopts)))
+print(summary(basem12c.l))
+
+print(system.time(basem12c.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball5 + strata(cp,day), data = all.adopts)))
+print(summary(basem12c.5))
+
+print(system.time(basem12c.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball10 + strata(cp,day), data = all.adopts)))
+print(summary(basem12c.10))
+
+print(system.time(basem12c.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball20 + strata(cp,day), data = all.adopts)))
+print(summary(basem12c.20))
+
 
 save(basem12,basem12.l,basem12.5,basem12.10,basem12.20,
      file='Rdata/adopt-analysis-tl.Rdata',compress=FALSE)
 
 save(basem12a,basem12a.l,basem12a.5,basem12a.10,basem12a.20,
-     file='Rdata/adopt-analysis-tl-sudocox.Rdata',compress=FALSE)
+     file='Rdata/adopt-analysis-tl-sudocox-user.Rdata',compress=FALSE)
 
 save(basem12b,basem12b.l,basem12b.5,basem12b.10,basem12b.20,
      file='Rdata/adopt-analysis-tl-sudocox-opens.Rdata',compress=FALSE)
+
+save(basem12c,basem12c.l,basem12c.5,basem12c.10,basem12c.20,
+     file='Rdata/adopt-analysis-tl-sudocox-cp.Rdata',compress=FALSE)
 
 do.call(rm,as.list(ls()[grep('basem12',ls())]))
 gc()
