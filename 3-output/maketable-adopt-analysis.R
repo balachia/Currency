@@ -46,6 +46,75 @@ hstr <- htmlreg(list(basem2, basem4.l, basem5.5, basem5.10, basem5.20),
        include.rsquared=FALSE, include.maxrs=FALSE, include.missings=FALSE)
 write(strip.html(hstr), file='adopts-base-log-dummies.html')
 
+############################################################
+# sudocox user
+
+texreg(list(basem10.base, basem10, basem10.l, basem10.5, basem10.10, basem10.20),
+       file='adopts-full-sudocox-user.tex', label='tab:adopts-sudocox-user',
+       digits=5, float.pos='htb',
+       caption='Conditional Logit (Trader/Day): Chance of Currency Pair Adoption',
+       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
+       custom.model.names=c('(1) Baseline', '(2) Linear Rank', '(3) Log Rank', '(4) Rank > 5', '(5) Rank > 10', '(6) Rank > 20'),
+       reorder.coef=NULL,
+       custom.coef.names=c('Alter Trade', 'Alter Profit',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank'),
+       include.rsquared=FALSE, include.maxrs=FALSE, include.missings=FALSE)
+
+hstr <- htmlreg(list(basem10.base, basem10, basem10.l, basem10.5, basem10.10, basem10.20),
+       doctype=FALSE, star.symbol='&lowast;',
+       digits=5, float.pos='htb',
+       caption='Conditional Logit (Trader/Day): Chance of Currency Pair Adoption',
+       custom.model.names=c('(1) Baseline', '(2) Linear Rank', '(3) Log Rank', '(4) Rank > 5', '(5) Rank > 10', '(6) Rank > 20'),
+       reorder.coef=NULL,
+       custom.coef.names=c('Alter Trade', 'Alter Profit',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank'),
+       include.rsquared=FALSE, include.maxrs=FALSE, include.missings=FALSE)
+write(strip.html(hstr), file='adopts-full-sudocox-user.html')
+
+############################################################
+# sudocox cp
+
+texreg(list(basem11.base, basem11, basem11.l, basem11.5, basem11.10, basem11.20),
+       file='adopts-full-sudocox-cp.tex', label='tab:adopts-sudocox-cp',
+       digits=5, float.pos='htb',
+       caption='Conditional Logit (Currency Pair/Day): Chance of Currency Pair Adoption',
+       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
+       custom.model.names=c('(1) Baseline', '(2) Linear Rank', '(3) Log Rank', '(4) Rank > 5', '(5) Rank > 10', '(6) Rank > 20'),
+       reorder.coef=NULL,
+       omit.coef='^Rank$',
+       custom.coef.names=c('Alter Trade', 'Alter Profit',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank'),
+       include.rsquared=FALSE, include.maxrs=FALSE, include.missings=FALSE)
+
+hstr <- htmlreg(list(basem11.base, basem11, basem11.l, basem11.5, basem11.10, basem11.20),
+       doctype=FALSE, star.symbol='&lowast;',
+       digits=5, float.pos='htb',
+       caption='Conditional Logit (Currency Pair/Day): Chance of Currency Pair Adoption',
+       custom.model.names=c('(1) Baseline', '(2) Linear Rank', '(3) Log Rank', '(4) Rank > 5', '(5) Rank > 10', '(6) Rank > 20'),
+       reorder.coef=NULL,
+       omit.coef='^Rank$',
+       custom.coef.names=c('Alter Trade', 'Alter Profit',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank',
+                           'Rank', 'Trade*Rank', 'Profit*Rank'),
+       include.rsquared=FALSE, include.maxrs=FALSE, include.missings=FALSE)
+write(strip.html(hstr), file='adopts-full-sudocox-cp.html')
+
+
 ################################################################################
 # BASELINE MODELS
 ################################################################################
