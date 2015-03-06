@@ -744,20 +744,20 @@ gc()
 ################################################################################
 # TRADE LEADER EXPERIENCE
 
-print(system.time(basem12 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*rank + strata(grp), data = all.adopts)))
-print(summary(basem12))
+#print(system.time(basem12 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*rank + strata(grp), data = all.adopts)))
+#print(summary(basem12))
 
-print(system.time(basem12.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*log(rank) + strata(grp), data = all.adopts)))
-print(summary(basem12.l))
+#print(system.time(basem12.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*log(rank) + strata(grp), data = all.adopts)))
+#print(summary(basem12.l))
 
-print(system.time(basem12.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball5 + strata(grp), data = all.adopts)))
-print(summary(basem12.5))
+#print(system.time(basem12.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball5 + strata(grp), data = all.adopts)))
+#print(summary(basem12.5))
 
-print(system.time(basem12.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball10 + strata(grp), data = all.adopts)))
-print(summary(basem12.10))
+#print(system.time(basem12.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball10 + strata(grp), data = all.adopts)))
+#print(summary(basem12.10))
 
-print(system.time(basem12.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball20 + strata(grp), data = all.adopts)))
-print(summary(basem12.20))
+#print(system.time(basem12.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball20 + strata(grp), data = all.adopts)))
+#print(summary(basem12.20))
 
 # sudo-cox user
 print(system.time(basem12a <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*rank + strata(user_id,day), data = all.adopts)))
@@ -775,21 +775,40 @@ print(summary(basem12a.10))
 print(system.time(basem12a.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball20 + strata(user_id,day), data = all.adopts)))
 print(summary(basem12a.20))
 
-# with currency opens
-print(system.time(basem12b <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*rank + strata(user_id,day), data = all.adopts)))
-print(summary(basem12b))
+form.base <- 'badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user%s + strata(user_id,day)'
+ranks <- c('','*rank','*log(rank)',
+           '*oddball5','*oddball10','*oddball20')
+forms <- sapply(ranks,function(x) sprintf(form.base,x))
 
-print(system.time(basem12b.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*log(rank) + strata(user_id,day), data = all.adopts)))
-print(summary(basem12b.l))
+basems12a <- multimodel(forms,mc.cores=1)
 
-print(system.time(basem12b.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*oddball5 + strata(user_id,day), data = all.adopts)))
-print(summary(basem12b.5))
+basem12a.base   <- basems12a[[1]]
+basem12a        <- basems12a[[2]]
+basem12a.l      <- basems12a[[3]]
+basem12a.5      <- basems12a[[4]]
+basem12a.10     <- basems12a[[5]]
+basem12a.20     <- basems12a[[6]]
 
-print(system.time(basem12b.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*oddball10 + strata(user_id,day), data = all.adopts)))
-print(summary(basem12b.10))
+save(list=paste0('basem12a',c('.base','','.l','.5','.10','.20')),
+     file='Rdata/adopt-analysis-tl-sudocox-user.Rdata',
+     compress=FALSE)
 
-print(system.time(basem12b.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*oddball20 + strata(user_id,day), data = all.adopts)))
-print(summary(basem12b.20))
+
+## with currency opens
+#print(system.time(basem12b <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*rank + strata(user_id,day), data = all.adopts)))
+#print(summary(basem12b))
+
+#print(system.time(basem12b.l <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*log(rank) + strata(user_id,day), data = all.adopts)))
+#print(summary(basem12b.l))
+
+#print(system.time(basem12b.5 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*oddball5 + strata(user_id,day), data = all.adopts)))
+#print(summary(basem12b.5))
+
+#print(system.time(basem12b.10 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*oddball10 + strata(user_id,day), data = all.adopts)))
+#print(summary(basem12b.10))
+
+#print(system.time(basem12b.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14 + nopen.norm.all + nopen.eq0)*tl.user*oddball20 + strata(user_id,day), data = all.adopts)))
+#print(summary(basem12b.20))
 
 # sudo-cox cp
 print(system.time(basem12c <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*rank + strata(cp,day), data = all.adopts)))
@@ -807,6 +826,25 @@ print(summary(basem12c.10))
 print(system.time(basem12c.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user*oddball20 + strata(cp,day), data = all.adopts)))
 print(summary(basem12c.20))
 
+form.base <- 'badopt ~ (ntgt0.a14 + ndpos.a14)*tl.user%s + strata(cp,day)'
+ranks <- c('','*rank','*log(rank)',
+           '*oddball5','*oddball10','*oddball20')
+forms <- sapply(ranks,function(x) sprintf(form.base,x))
+
+basems12c <- multimodel(forms,mc.cores=1)
+
+basem12c.base   <- basems12c[[1]]
+basem12c        <- basems12c[[2]]
+basem12c.l      <- basems12c[[3]]
+basem12c.5      <- basems12c[[4]]
+basem12c.10     <- basems12c[[5]]
+basem12c.20     <- basems12c[[6]]
+
+save(list=paste0('basem12c',c('.base','','.l','.5','.10','.20')),
+     file='Rdata/adopt-analysis-sudocox-cp.Rdata',
+     compress=FALSE)
+
+
 
 save(basem12,basem12.l,basem12.5,basem12.10,basem12.20,
      file='Rdata/adopt-analysis-tl.Rdata',compress=FALSE)
@@ -821,6 +859,7 @@ save(basem12c,basem12c.l,basem12c.5,basem12c.10,basem12c.20,
      file='Rdata/adopt-analysis-tl-sudocox-cp.Rdata',compress=FALSE)
 
 do.call(rm,as.list(ls()[grep('basem12',ls())]))
+rm(basems12a,basems12c)
 gc()
 
 
