@@ -5,6 +5,7 @@ library(survival)
 library(brglm)
 library(elrm)
 library(stringr)
+library(parallel)
 
 
 
@@ -50,6 +51,21 @@ adopt.spells <- adopt.spells[cum.adopt==0]
 adopt.spells.surv <- with(adopt.spells,Surv(day,endday+1,badopt))
 
 
+fpt <- readRDS('./Rds/forexposition.Rds')
+fpt[,day := floor((opendate / 86400000.0) + 0.125)]
+fpt <- fpt[,list(hasopen=1),by=list(user_id,day)]
+
+users <- as.data.table(as.data.frame(ad.ffd['user_id']))
+users <- users[,list(user_id=V1[1]),by=V1][,user_id]
+daydt <- CJ(day=min(ad.ffd$day):max(ad.ffd$day),
+            user_id=users)
+daydt <- merge(daydt,fpt,by=c('user_id','day'),all.x=TRUE)
+daydt[is.na(hasopen), hasopen := 0]
+daydt <- daydt[order(user_id,day)]
+daydt[,lapsegrp := cumsum(hasopen),by=user_id]
+daydt[,lapse := 1:.N, by=list(user_id,lapsegrp)]
+
+
 # get user-days
 print(system.time(
     tmpdt <- as.data.table(as.data.frame(ad.ffd[,c('badopt','cp','user_id','day')]))))
@@ -66,7 +82,8 @@ tmpdt[,cp.select := runif(1),by=list(cp,day)]
 
 
 good.cols <- c('user_id','day','cp',
-               'ugrp','ugrpN','grp','grpN',
+               'nfriends',
+               #'ugrp','ugrpN','grp','grpN',
                #'ntotal.e2','npos.e2','nneg.e2','nfr.e2',
                #'ntotal.e10','npos.e10','nneg.e10','nfr.e10',
                #'ntotal.a14','npos.a14','nneg.a14','nfr.a14',
@@ -93,21 +110,29 @@ select.max <- 25000
         #all.adopts <- as.data.table(as.data.frame(ad.ffd[ffwhich(ad.ffd, adopt_grp_select <= select.max & cum.adopt == 0), good.cols]))
     #))
 
-# select ALL cases and 1% sample of non-case days
-#ffidx <- ff(tmpdt[,
-    #which((grp.badopt > 0 & grp.select < 1) | grp.select < 0.01)])
+# sample all active user days
 ffidx <- ff(tmpdt[,
     which((user.badopt > 0 & user.select < 1) | user.select < 0.0)])
-#ffidx <- ff(tmpdt[,
-    #which((cp.badopt > 0 & cp.select < 1) | cp.select < 0.0)])
+
+# sample all active currency pair days
+ffidx <- ff(tmpdt[,
+    which((cp.badopt > 0 & cp.select < 1) | cp.select < 0.0)])
+
+# pull out the sample
 print(system.time(
         all.adopts <- as.data.table(as.data.frame(ad.ffd[ffidx, good.cols]))
     ))
+
+rm(tmpdt);gc()
 
 all.adopts[, oddball25 := rank > 25]
 all.adopts[, oddball30 := rank > 30]
 all.adopts[, oddball40 := rank > 40]
 all.adopts[, oddball50 := rank > 50]
+
+
+############################################################
+# if running trader-day effects, control for currency
 all.adopts[, nopen.other := nopen.all - nopen.ego - nopen.alt]
 all.adopts[, nopen.eq0 := as.numeric(nopen.other==0)]
 
@@ -128,6 +153,20 @@ all.adopts[, nopen.norm := nopen.other / (nopen.week + 1)]
 all.adopts[, nopen.week.all := sum(nopen.week), by=list(user_id,day)]
 all.adopts[, nopen.norm.all := nopen.other / (nopen.week.all + 1)]
 
+
+############################################################
+# if running currency-day effects, control for trader activity
+all.adopts <- merge(all.adopts,daydt[,list(user_id,day,lapse)],
+                    by=c('user_id','day'),
+                    all.x=TRUE)
+all.adopts[,`:=`(lapse15=lapse>15,
+                 lapse30=lapse>30,
+                 lapse45=lapse>45,
+                 lapse60=lapse>60,
+                 lapse90=lapse>90)]
+
+
+############################################################
 # merge in trade leader users
 all.adopts <- merge(all.adopts,
                     tl.users[,list(user_id=tl_id,tl.user)],
@@ -146,6 +185,25 @@ save(all.adopts,file='Rdata/adopt-analysis-data.Rdata',compress=FALSE)
 
 if(FALSE) {
     load('Rdata/adopt-analysis-data.Rdata')
+}
+
+############################################################
+# multi-solver?
+multimodel <- function(forms,...) {
+    clogiter <- function(form,...) {
+        cat('MODEL START (',format(Sys.time()),'): ',form,'\n',sep='')
+        print(system.time(res <- clogit(as.formula(form),
+                                        data=all.adopts)))
+        cat(format(Sys.time()),'\n')
+        print(summary(res))
+        res
+    }
+
+    res <- mclapply(X=forms,
+    #res <- lapply(X=forms,
+                  FUN=clogiter,
+                  ...)
+    res
 }
 
 #all.adopts.full <- readRDS('Rds/weekly-all-adopts.Rds')
@@ -599,7 +657,28 @@ print(summary(basem10.20))
 save(basem10.base,basem10,basem10.l,basem10.5,basem10.10,basem10.20,
      file='Rdata/adopt-analysis-sudocox-user.Rdata',compress=FALSE)
 
+
+form.base <- 'badopt ~ (ntgt0.a14 + ndpos.a14)%s + strata(user_id,day)'
+ranks <- c('','*rank','*log(rank)',
+           '*oddball5','*oddball10','*oddball20')
+forms <- sapply(ranks,function(x) sprintf(form.base,x))
+
+basems10 <- multimodel(forms,mc.cores=1)
+
+basem10.base   <- basems10[[1]]
+basem10        <- basems10[[2]]
+basem10.l      <- basems10[[3]]
+basem10.5      <- basems10[[4]]
+basem10.10     <- basems10[[5]]
+basem10.20     <- basems10[[6]]
+
+save(list=paste0('basem10',c('.base','','.l','.5','.10','.20')),
+     file='Rdata/adopt-analysis-sudocox-user.Rdata',
+     compress=FALSE)
+
+
 do.call(rm,as.list(ls()[grep('basem10',ls())]))
+rm(basems10)
 gc()
 
 
@@ -623,6 +702,37 @@ print(summary(basem11.10))
 
 print(system.time(basem11.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(cp,day), data = all.adopts)))
 print(summary(basem11.20))
+
+# with use lapse controls, maybe?
+#form.base <- 'badopt ~ (ntgt0.a14 + ndpos.a14)%s + lapse15 + strata(cp,day)'
+form.base <- 'badopt ~ (ntgt0.a14 + ndpos.a14)*(lapse30)%s + strata(cp,day)'
+ranks <- c('','*rank','*log(rank)',
+           '*oddball5','*oddball10','*oddball20')
+forms <- sapply(ranks,function(x) sprintf(form.base,x))
+
+basems11a <- multimodel(forms,mc.cores=1)
+
+form.base <- 'badopt ~ (ntgt0.a14 + ndpos.a14)*log(1+nfriends)%s + strata(cp,day)'
+ranks <- c('','*rank','*log(rank)',
+           '*oddball5','*oddball10','*oddball20')
+forms <- sapply(ranks,function(x) sprintf(form.base,x))
+
+basems11b <- multimodel(forms,mc.cores=1)
+
+basem11b.base   <- basems11b[[1]]
+basem11b        <- basems11b[[2]]
+basem11b.l      <- basems11b[[3]]
+basem11b.5      <- basems11b[[4]]
+basem11b.10     <- basems11b[[5]]
+basem11b.20     <- basems11b[[6]]
+
+save(list=paste0('basem11b',c('.base','','.l','.5','.10','.20')),
+     file='Rdata/adopt-analysis-sudocox-cp-friends.Rdata',
+     compress=FALSE)
+
+#do.call(save,c(basems11b,
+               #file='Rdata/adopt-analysis-sudocox-cp-friends.Rdata',
+               #compress=FALSE))
 
 save(basem11.base, basem11,basem11.l,basem11.5,basem11.10,basem11.20,
      file='Rdata/adopt-analysis-sudocox-cp.Rdata',compress=FALSE)
