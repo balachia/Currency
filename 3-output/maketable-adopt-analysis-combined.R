@@ -45,7 +45,7 @@ addBelowHTML <- function(x,rows=NULL) {
                           innards,
                           back,'\n</tr>\n')
     }
-    print(addRows)
+    #print(addRows)
     repstr <- paste0('\\1',addRows,'<tr>\\2<td style="border-top')
     res <- gsub('(.*)<tr>(\\s*)<td style="border-top',repstr,x)
     res <- gsub(styletop,stylemid,res,fixed=TRUE)
@@ -86,7 +86,7 @@ write(htmlstr, file='adopts-short-sudocox-user.html')
 
 wrap <- function(f,...) {
     f(l=cpfrms[c('basem11b.base','basem11b.l','basem11b.10')],
-      label='tab:',
+      label='tab:adopts-short-cp-friends',
       digits=3, float.pos='htb',
       caption='Conditional Logit (Currency Pair/Day): Chance of Currency Adoption',
       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
@@ -116,7 +116,7 @@ write(htmlstr, file='adopts-short-sudocox-cp-friends.tex')
 
 wrap <- function(f,...) {
     f(l=c(cpms[c('basem11.base','basem11.l','basem11.10')],cpfrms[c('basem11b.base','basem11b.l','basem11b.10')]),
-      label='tab:',
+      label='tab:adopts-short-cp-all',
       digits=3, float.pos='htb',
       caption='Conditional Logit (Currency Pair/Day): Chance of Currency Adoption',
       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
@@ -153,7 +153,7 @@ write(htmlstr, file='adopts-short-sudocox-cp-all.html')
 
 wrap <- function(f,...) {
     f(l=c(userms[c('basem10.base','basem10.l','basem10.10')],cpfrms[c('basem11b.base','basem11b.l','basem11b.10')]),
-      label='tab:',
+      label='tab:adopts-short-all',
       digits=3, float.pos='htb',
       caption='Conditional Logit: Chance of Currency Adoption',
       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
@@ -175,8 +175,8 @@ htmlstr <- wrap(htmlreg)
 
 rows <- list(c('Trader FE',rep(c('Y','N'),each=3)),
              c('Currency Pair FE',rep(c('N','Y'),each=3)))
-addBelowTex(texstr,rows)
-addBelowHTML(htmlstr,rows)
+texstr <- addBelowTex(texstr,rows)
+htmlstr <- addBelowHTML(htmlstr,rows)
 
 htmlstr <- strip.html(htmlstr)
 
