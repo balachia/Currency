@@ -48,7 +48,7 @@ addBelowHTML <- function(x,rows=NULL) {
                           innards,
                           back,'\n</tr>\n')
     }
-    print(addRows)
+    #print(addRows)
     repstr <- paste0('\\1',addRows,'<tr>\\2<td style="border-top')
     res <- gsub('(.*)<tr>(\\s*)<td style="border-top',repstr,x)
     res <- gsub(styletop,stylemid,res,fixed=TRUE)
