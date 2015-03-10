@@ -108,7 +108,7 @@ htmlstr <- wrap(htmlreg)
 htmlstr <- strip.html(htmlstr)
 
 write(texstr, file='adopts-short-sudocox-cp-friends.tex')
-write(htmlstr, file='adopts-short-sudocox-cp-friends.tex')
+write(htmlstr, file='adopts-short-sudocox-cp-friends.html')
 
 
 ############################################################
@@ -117,7 +117,7 @@ write(htmlstr, file='adopts-short-sudocox-cp-friends.tex')
 wrap <- function(f,...) {
     f(l=c(cpms[c('basem11.base','basem11.l','basem11.10')],cpfrms[c('basem11b.base','basem11b.l','basem11b.10')]),
       label='tab:adopts-short-cp-all',
-      digits=3, float.pos='htb',
+      digits=3, float.pos='htb',sideways=TRUE,
       caption='Conditional Logit (Currency Pair/Day): Chance of Currency Adoption',
       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
       doctype=FALSE, star.symbol='&lowast;',
@@ -154,7 +154,7 @@ write(htmlstr, file='adopts-short-sudocox-cp-all.html')
 wrap <- function(f,...) {
     f(l=c(userms[c('basem10.base','basem10.l','basem10.10')],cpfrms[c('basem11b.base','basem11b.l','basem11b.10')]),
       label='tab:adopts-short-all',
-      digits=3, float.pos='htb',
+      digits=3, float.pos='htb',sideways=TRUE,
       caption='Conditional Logit: Chance of Currency Adoption',
       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
       doctype=FALSE, star.symbol='&lowast;',
