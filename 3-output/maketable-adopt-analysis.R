@@ -1,6 +1,9 @@
 library(survival)
 library(texreg)
 
+# source utilities
+source('table-utilities.R')
+
 setwd('~/Data/forex')
 #load('adopt-analysis.Rdata')
 load('Rdata/adopt-analysis-basem.Rdata')
@@ -51,7 +54,7 @@ write(strip.html(hstr), file='adopts-base-log-dummies.html')
 
 texreg(list(basem10.base, basem10, basem10.l, basem10.5, basem10.10, basem10.20),
        file='adopts-full-sudocox-user.tex', label='tab:adopts-sudocox-user',
-       digits=5, float.pos='htb',
+       digits=5, float.pos='htb',sideways=TRUE,
        caption='Conditional Logit (Trader/Day): Chance of Currency Pair Adoption',
        dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
        custom.model.names=c('(1) Baseline', '(2) Linear Rank', '(3) Log Rank', '(4) Rank > 5', '(5) Rank > 10', '(6) Rank > 20'),
@@ -84,7 +87,7 @@ write(strip.html(hstr), file='adopts-full-sudocox-user.html')
 
 texreg(list(basem11.base, basem11, basem11.l, basem11.5, basem11.10, basem11.20),
        file='adopts-full-sudocox-cp.tex', label='tab:adopts-sudocox-cp',
-       digits=5, float.pos='htb',
+       digits=5, float.pos='htb',sideways=TRUE,
        caption='Conditional Logit (Currency Pair/Day): Chance of Currency Pair Adoption',
        dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
        custom.model.names=c('(1) Baseline', '(2) Linear Rank', '(3) Log Rank', '(4) Rank > 5', '(5) Rank > 10', '(6) Rank > 20'),
