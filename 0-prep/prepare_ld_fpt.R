@@ -1,6 +1,6 @@
 library(data.table)
 
-setwd('~/Data/Currensee/tables-2014/Rds')
+setwd('~/Data/forex/tables-2014/Rds')
 
 rm(list=ls())
 

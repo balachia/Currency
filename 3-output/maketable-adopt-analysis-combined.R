@@ -60,7 +60,7 @@ addBelowHTML <- function(x,rows=NULL) {
 wrap <- function(f,...) {
     f(l=userms[c('basem10.base','basem10.l','basem10.10')],
       label='tab:adopts-short-user',
-      digits=3, float.pos='htb',
+      digits=3, float.pos='tb',
       caption='Conditional Logit (Trader/Day): Chance of Currency Adoption',
       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
       doctype=FALSE, star.symbol='&lowast;',
@@ -87,7 +87,7 @@ write(htmlstr, file='adopts-short-sudocox-user.html')
 wrap <- function(f,...) {
     f(l=cpfrms[c('basem11b.base','basem11b.l','basem11b.10')],
       label='tab:adopts-short-cp-friends',
-      digits=3, float.pos='htb',
+      digits=3, float.pos='tb',
       caption='Conditional Logit (Currency Pair/Day): Chance of Currency Adoption',
       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
       doctype=FALSE, star.symbol='&lowast;',
@@ -117,7 +117,7 @@ write(htmlstr, file='adopts-short-sudocox-cp-friends.html')
 wrap <- function(f,...) {
     f(l=c(cpms[c('basem11.base','basem11.l','basem11.10')],cpfrms[c('basem11b.base','basem11b.l','basem11b.10')]),
       label='tab:adopts-short-cp-all',
-      digits=3, float.pos='htb',sideways=TRUE,
+      digits=3, float.pos='tb',sideways=TRUE,
       caption='Conditional Logit (Currency Pair/Day): Chance of Currency Adoption',
       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
       doctype=FALSE, star.symbol='&lowast;',
@@ -154,7 +154,7 @@ write(htmlstr, file='adopts-short-sudocox-cp-all.html')
 wrap <- function(f,...) {
     f(l=c(userms[c('basem10.base','basem10.l','basem10.10')],cpfrms[c('basem11b.base','basem11b.l','basem11b.10')]),
       label='tab:adopts-short-all',
-      digits=3, float.pos='htb',sideways=TRUE,
+      digits=3, float.pos='tb',sideways=TRUE,
       caption='Conditional Logit: Chance of Currency Adoption',
       dcolumn=TRUE, booktabs=TRUE, use.packages=FALSE,
       doctype=FALSE, star.symbol='&lowast;',

@@ -1,7 +1,7 @@
 clear
 set more off
 
-cd ~/Data/Currensee/dta
+cd ~/Data/forex/dta
 
 use short-adopts
 

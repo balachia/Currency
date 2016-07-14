@@ -3,7 +3,7 @@ library(survival)
 library(rms)
 library(parallel)
 
-setwd('~/Data/Currensee')
+setwd('~/Data/forex')
 
 rm(list=ls())
 

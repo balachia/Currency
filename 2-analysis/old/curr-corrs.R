@@ -6,7 +6,7 @@ library(parallel)
 
 rm(list=ls())
 
-setwd('/archive/gsb/vashevko/Currensee/')
+setwd('/archive/gsb/vashevko/forex/')
 
 aus <- readRDS('~/2YP/data/active-user-quantiles.Rds')
 aus <- aus[,list(user_id,dayson)]

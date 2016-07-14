@@ -14,8 +14,8 @@ if re.match(r'corn..\.stanford\.edu',node()) or re.match(r'barley[^.]+\.stanford
     DATAFILE = expanduser('~/2YP/data/forexposition.h5')
     FRIENDFILE = expanduser('~/2YP/data/linkdata.h5')
 else:
-    DATAFILE = expanduser('~/Dropbox/Currensee/Data Exploration/hdf/forexposition.h5')
-    FRIENDFILE = expanduser('~/Dropbox/Currensee/Data Exploration/hdf/linkdata.h5')
+    DATAFILE = expanduser('~/Dropbox/forex/Data Exploration/hdf/forexposition.h5')
+    FRIENDFILE = expanduser('~/Dropbox/forex/Data Exploration/hdf/linkdata.h5')
 
 global icount
 icount = 1

@@ -42,7 +42,7 @@ gc()
 
 
 ############################################################
-# cp-fe models
+# cp-fe/friends models
 
 load('Rdata/adopt-analysis-sudocox-cp-friends.Rdata')
 

@@ -6,7 +6,7 @@ qcuts <- function(x, qs) {
     cut(x, unique(quantile(x, qs, na.rm=TRUE)), labels=FALSE, include.lowest=TRUE)
 }
 
-setwd('~/Data/Currensee/')
+setwd('~/Data/forex/')
 
 # load in data
 fpt <- readRDS('forexposition.Rds')

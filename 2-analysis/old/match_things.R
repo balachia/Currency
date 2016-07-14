@@ -68,11 +68,11 @@ poor.cem <- function(dt, keys, snames=NULL, qnames=NULL, bkeys=keys) {
 }
 
 if (grepl('.*stanford\\.edu',Sys.info()[['nodename']])) {
-    DATA.DIR <- '/archive/gsb/vashevko/Currensee/'
+    DATA.DIR <- '/archive/gsb/vashevko/forex/'
     OUT.DIR <- '~/2YP/writing/'
 } else {
-    DATA.DIR <- '~/Data/Currensee/'
-    OUT.DIR <- '~/Dropbox/Currensee Project/writing/'
+    DATA.DIR <- '~/Data/forex/'
+    OUT.DIR <- '~/Dropbox/forex Project/writing/'
 }
 
 setwd(DATA.DIR)

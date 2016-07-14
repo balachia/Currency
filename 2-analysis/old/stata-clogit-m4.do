@@ -4,7 +4,7 @@ set more off
 capture: log close
 log using "~/2YP/writing/smcl/clogits-m4.smcl", replace
 
-cd /archive/gsb/vashevko/Currensee/dta
+cd /archive/gsb/vashevko/forex/dta
 
 use "adopts-m4.dta"
 

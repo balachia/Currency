@@ -8,7 +8,7 @@ Let's make some semblance of order to this project:
     2. export SQL to csv
         by hand
     3. csv tables -> R data.table, stored as Rds  
-        HOME/Dropbox/Currensee/Data Exploration/utilcode/csvs2rds.R
+        HOME/Dropbox/forex/Data Exploration/utilcode/csvs2rds.R
     4. reprocess base Rds tables to be used in later steps  
         unclear
 

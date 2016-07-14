@@ -11,7 +11,7 @@ library(texreg)
 # MATCH FILE SETTINGS TO HOST MACHINE
 MC.CORES <- 2
 if (grepl('.*stanford\\.edu',Sys.info()[['nodename']])) {
-    DATA.DIR <- '/archive/gsb/vashevko/Currensee/'
+    DATA.DIR <- '/archive/gsb/vashevko/forex/'
     OUT.DIR <- '~/2YP/writing/'
     CODE.DIR <- '~/2YP/code/'
     
@@ -24,9 +24,9 @@ if (grepl('.*stanford\\.edu',Sys.info()[['nodename']])) {
 #        MC.CORES <- 6
     }
 } else {
-    DATA.DIR <- '~/Data/Currensee/'
-    OUT.DIR <- '~/Dropbox/Currensee Project/writing/'
-    CODE.DIR <- '~/Dropbox/Currensee Project/code/'
+    DATA.DIR <- '~/Data/forex/'
+    OUT.DIR <- '~/Dropbox/forex Project/writing/'
+    CODE.DIR <- '~/Dropbox/forex Project/code/'
 }
 
 # LOAD UTILITY FUNCTIONS

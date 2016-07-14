@@ -703,6 +703,25 @@ print(summary(basem11.10))
 print(system.time(basem11.20 <- clogit(badopt ~ (ntgt0.a14 + ndpos.a14)*oddball20 + strata(cp,day), data = all.adopts)))
 print(summary(basem11.20))
 
+form.base <- 'badopt ~ (ntgt0.a14 + ndpos.a14)%s + strata(cp,day)'
+ranks <- c('','*rank','*log(rank)',
+           '*oddball5','*oddball10','*oddball20')
+forms <- sapply(ranks,function(x) sprintf(form.base,x))
+
+basems11 <- multimodel(forms,mc.cores=1)
+
+basem11.base   <- basems11[[1]]
+basem11        <- basems11[[2]]
+basem11.l      <- basems11[[3]]
+basem11.5      <- basems11[[4]]
+basem11.10     <- basems11[[5]]
+basem11.20     <- basems11[[6]]
+
+save(list=paste0('basem11',c('.base','','.l','.5','.10','.20')),
+     file='Rdata/adopt-analysis-sudocox-cp.Rdata',
+     compress=FALSE)
+
+
 # with use lapse controls, maybe?
 #form.base <- 'badopt ~ (ntgt0.a14 + ndpos.a14)%s + lapse15 + strata(cp,day)'
 form.base <- 'badopt ~ (ntgt0.a14 + ndpos.a14)*(lapse30)%s + strata(cp,day)'
@@ -841,7 +860,7 @@ basem12c.10     <- basems12c[[5]]
 basem12c.20     <- basems12c[[6]]
 
 save(list=paste0('basem12c',c('.base','','.l','.5','.10','.20')),
-     file='Rdata/adopt-analysis-sudocox-cp.Rdata',
+     file='Rdata/adopt-analysis-tl-sudocox-cp.Rdata',
      compress=FALSE)
 
 

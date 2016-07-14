@@ -5,7 +5,7 @@ library(ffbase)
 
 rm(list=ls())
 
-setwd('~/Data/Currensee')
+setwd('~/Data/forex')
 
 aus <- readRDS('active-user-quantiles.Rds')
 dt <- readRDS('day.stats-0-1samp.Rds')
@@ -363,7 +363,7 @@ summary(res <- gam(bopen~poly(hadopen,2) + scale(med_ob)
 
 
 
-setwd('~/Dropbox/Currensee Project/2YP/plots/recent-hist/')
+setwd('~/Dropbox/forex Project/2YP/plots/recent-hist/')
 png('ego_mdpnl.png', width=800, height=600)
 ggplot(c.dt,aes(x=dpnl_mean_ego7,bopen)) + 
     labs(x="Ego: Mean $ PNL") +
@@ -481,4 +481,4 @@ dev.off()
 
 
 
-setwd('~/Data/Currensee')
+setwd('~/Data/forex')

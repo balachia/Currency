@@ -3,7 +3,7 @@ library(ffbase)
 
 rm(list=ls())
 
-setwd('/archive/gsb/vashevko/Currensee/')
+setwd('/archive/gsb/vashevko/forex/')
 
 cuts <- seq(0,1,0.1)
 cut.names <- paste(cuts[-length(cuts)], cuts[-1], sep='-')

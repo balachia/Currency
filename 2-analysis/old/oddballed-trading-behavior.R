@@ -6,7 +6,7 @@ library(reshape2)
 
 rm(list=ls())
 
-setwd('~/Data/Currensee')
+setwd('~/Data/forex')
 
 aus <- readRDS('active-user-quantiles.Rds')
 dt <- readRDS('day.stats-0-1samp.Rds')
@@ -152,7 +152,7 @@ c.dt[,slc := runif(.N)]
 
 
 # visual analysis
-setwd('~/Dropbox/Currensee Project/2YP/plots/min-maj/')
+setwd('~/Dropbox/forex Project/2YP/plots/min-maj/')
 
 crit.SLC <- 1.0
 
@@ -414,4 +414,4 @@ ggplot(c.dt[slc<crit.SLC],aes(x=(npos_alter_min_7 - nneg_alter_min_7) / ntotal_a
     stat_smooth(method='gam', family='binomial')
 gc(verbose=FALSE); dev.off()
 
-setwd('~/Data/Currensee')
+setwd('~/Data/forex')
